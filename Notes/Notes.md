@@ -4,6 +4,14 @@
 
 **Type Assertion**: *"**as**"* *Keyword is used as type assertion when assigning a variable as "**any**" even tho they are of any type.*
 
+**Redis**: *REmote DIrectory Server - used as a database, cache, message broker and streamline engine. e.g, a game with a leaderboard and redis use RAM to fetch data.*
+
+*We are using it for few simple things like:*
+
+- Live Notifications
+- Streaming
+- State Management
+
 ## Codes
 
 ### **Test API**
@@ -62,4 +70,4 @@ export const connectDB = async () => {
 }
 ```
 
-2. Called the this file in the [app.ts](../server/app.ts).
+2. Called the this file in the [app.ts](../server/app.ts)
