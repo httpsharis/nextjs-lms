@@ -16,15 +16,3 @@ app.use(cors({
     origin: process.env.ORIGIN
 }))
 
-// Test API
-app.get('/test', (
-    req: Request,
-    res: Response,
-    Next: NextFunction
-) => {
-    res.status(200).json({
-        success: true,
-        message: "API is working"
-    })
-})
-

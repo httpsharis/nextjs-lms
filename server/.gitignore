@@ -19,3 +19,7 @@ Thumbs.db
 
 # Ignore environment variables file
 .env
+
+# Ignore all env variants by default (keep the example template)
+.env.*
+!.env.example
