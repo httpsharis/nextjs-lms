@@ -71,3 +71,42 @@ export const connectDB = async () => {
 ```
 
 2. Called the this file in the [app.ts](../server/app.ts)
+
+### Error Handling
+
+```
+import ErrorHandler from "@/Utils/ErrorHandler";
+import { NextFunction, Request, Response } from "express";
+
+module.exports = (
+    err: any,
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    err.statusCode = err.statusCode || 500;
+    err.message = err.message || "Internal Server Error!"
+
+    // Wrong MongoDB/Mongoose ID Error
+    if (err.message == "CastError") {
+        const message = `Resource not found with the ID if ${err.value}`
+        return res.status(404).json({
+            success: false,
+            message: message
+        })
+    }
+
+    // OR 
+    if (err.name == "CastError") {
+        const message = `Resource not found, Invalid: ${err.path}` // @desc Path gives me the Field of Error: _id
+        err = new ErrorHandler(message, 404)
+    }
+
+
+    // Default Error 
+    res.status(err.statusCode || 500).json({
+        success: false, 
+        message: err.message || "Server Error"
+    })
+}
+```
