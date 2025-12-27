@@ -11,7 +11,7 @@ export const errorMiddleware = (
     err.message = err.message || "Internal Server Error!"
 
     // Mongo/Mongoose ID Error
-    if (err.name == "CastError") {
+    if (err.name === "CastError") {
         const message = `Resource not found, Invalid: ${err.path}` // @desc Path gives me the Field of Error: _id
         err = new ErrorHandler(message, 400)
     }
@@ -28,12 +28,11 @@ export const errorMiddleware = (
         err = new ErrorHandler(message, 400)
     }
 
+    // Expired JWT Token
     if (err.name === "TokenExpiredError") {
         const message = `Json Token is Expired, Try again!`
         err = new ErrorHandler(message, 400)
     }
-
-
 
     // Send response to client
     res.status(err.statusCode).json({

@@ -2,7 +2,7 @@
 export default class ErrorHandler extends Error {
 
     statusCode: Number // Defined here because typescript thinks that On @messaged can be passed.
-    constructor(message: any, statusCode: Number) {
+    constructor(message: string, statusCode: Number) {
         super(message);
         this.statusCode = statusCode;
 
