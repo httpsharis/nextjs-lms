@@ -17,4 +17,10 @@ app.use(cors({
     origin: process.env.ORIGIN
 }))
 
+// Routes
+import UserRouter from './routes/userRoute';
+
+app.use('/api/v1', UserRouter)
+
+
 app.use(errorMiddleware)
