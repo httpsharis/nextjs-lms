@@ -61,10 +61,9 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
 
 
 // Hash Password
-userSchema.pre('save', async function () {
-    if (!this.isModified('password')) {
-        return;
-    }
+userSchema.pre('save', async function () { // @pre('save') is mongoose hook that runs before saving it in the database
+    if (!this.isModified('password')) return;
+
     this.password = await bcrypt.hash(this.password, 10);
 });
 
@@ -74,4 +73,4 @@ userSchema.methods.comparePasswords = async function (enteredPassword: string): 
 }
 
 const userModel: Model<IUser> = mongoose.model("User", userSchema)
-export default userModel;
+export default userModel; 

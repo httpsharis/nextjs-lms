@@ -9,7 +9,7 @@ import sendMail from '../Utils/sendMail';
 require('dotenv').config()
 
 // Register User
-interface RegisterBody { // Interface defines the structure and shape of an object.
+interface RegisterBody { // @Interface defines the structure and shape of an object.
     name: string,
     email: string,
     password: string,
@@ -54,7 +54,7 @@ export const registerUser = catchAsyncError(async (req: Request, res: Response, 
             activationCode: activationToken.token,
         })
     } catch (error: any) {
-        return new ErrorHandler("error.message", 400)
+        return next(new ErrorHandler("error.message", 400))
     }
 })
 
