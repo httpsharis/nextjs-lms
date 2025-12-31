@@ -83,3 +83,39 @@ export const registerLimiter = rateLimit({
     max: 3, // 3 Attempts per 15 min
     message: 'Too many registration attempts, please try again later'
 })
+
+// Activate User
+interface ActivationRequest {
+    activation_token: string;
+    activation_code: string;
+}
+
+export const activateUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const { activation_token, activation_code } = req.body as ActivationRequest // Defining the types
+
+    const newUser: { user: IUser; activationCode: string } = jwt.verify(
+        activation_token,
+        process.env.ACTIVATION_SECRET as string
+    ) as { user: IUser; activationCode: string }
+
+    if (newUser.activationCode !== activation_code) {
+        return next(new ErrorHandler('Activation Code is Invalid', 400))
+    }
+
+    const { name, email, password } = newUser.user;
+
+    const existedUser = await userModel.findOne({ email })
+
+    if (existedUser) {
+        return next(new ErrorHandler('Email Already Exist!', 400))
+    }
+
+    const user = await userModel.create({
+        name, email, password
+    })
+
+    res.status(201).json({
+        success: true,
+        message: 'Your account is Activated'
+    })
+})
