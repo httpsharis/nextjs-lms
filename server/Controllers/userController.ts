@@ -6,7 +6,9 @@ import jwt from 'jsonwebtoken'
 import ejs from 'ejs'
 import path from 'path';
 import sendMail from '../Utils/sendMail';
+import rateLimit from 'express-rate-limit'
 require('dotenv').config()
+
 
 // Register User
 interface RegisterBody { // @Interface defines the structure and shape of an object.
@@ -74,3 +76,10 @@ export const createActivationToken = (user: RegisterBody): ActivationToken => {
 
     return { token, activationCode }
 }
+
+// Rate Limit for the mails
+export const registerLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 Min
+    max: 3, // 3 Attempts per 15 min
+    message: 'Too many registration attempts, please try again later'
+})
