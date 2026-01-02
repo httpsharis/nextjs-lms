@@ -151,3 +151,14 @@ export const loginUser = catchAsyncError(async (req: Request, res: Response, nex
     // Sends token and response - Function exist in the Utils/jwt.ts
     sendToken(user, 200, res)
 })
+
+// @logout-user 
+export const logoutUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    res.cookie("access_token", "")
+    res.cookie("refresh_token", "")
+
+    res.status(200).json({
+        success: true,
+        message: "User Logged out successfully!"
+    })
+})
