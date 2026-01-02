@@ -12,11 +12,13 @@ interface TokenOptions {
     secure?: boolean;
 }
 
+// Function that accepts the user, code and res
 export const sendToken = (user: IUser, statusCode: number, res: Response) => {
-    const accessToken = user.SignAccessToken();
-    const refreshToken = user.SignRefreshToken();
+    // a. Generates Tokens
+    const accessToken = user.SignAccessToken(); // expires after 5 to 10 mins
+    const refreshToken = user.SignRefreshToken(); // Keep the user logged in as they're active
 
-    // Upload session to redis
+    // b. Upload session to redis
     redis.set(user._id.toString(), JSON.stringify(user) as any)
 
     // parse environment to integrate with te fallback 
@@ -32,20 +34,22 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
     }
 
     const refreshTokenOptions: TokenOptions = {
-        expires: new Date(Date.now() + accessTokenExpire * 1000),
+        expires: new Date(Date.now() + refreshTokenExpire * 1000),
         maxAge: refreshTokenExpire * 1000,
         httpOnly: true,
         sameSite: 'lax'
     }
 
-    // accessToken will be secure in production
+    // This func will make the access token secure when in production mode.
     if (process.env.NODE_ENV === 'production') {
         accessTokenOptions.secure = true;
     }
 
+    // c. Set Cookies
     res.cookie("access_token", accessToken, accessTokenOptions)
     res.cookie("refresh_token", refreshToken, refreshTokenOptions)
 
+    // d. send response
     res.status(statusCode).json({
         success: true,
         user,

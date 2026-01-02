@@ -73,12 +73,13 @@ userSchema.pre('save', async function () { // @pre('save') is mongoose hook that
 });
 
 // @Sign-Access-Token - Generates an access token when login in.
-userSchema.methods.SignAccessToken = async function () {
+userSchema.methods.SignAccessToken = function () {
     // An Access Token will be assigned to the user _id after login
     return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || '')
 }
 
-userSchema.methods.SignRefreshToken = async function () {
+// @Sign-Refresh-Token - Generates the refresh token
+userSchema.methods.SignRefreshToken = function () {
     return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || '')
 }
 

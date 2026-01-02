@@ -123,27 +123,31 @@ export const activateUser = catchAsyncError(async (req: Request, res: Response, 
 })
 
 // @Login-User 
-
 interface LoginUser {
     email: string,
     password: string,
 }
 export const loginUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    // Extract credentials
     const { email, password } = req.body as LoginUser;
+
+    // Validate Input: Checks if the user inputs the Email & Password
     if (!email || !password) {
         return next(new ErrorHandler('Please Enter Email and password', 400))
     }
 
+    // Check DB if the user already exit?
     const user = await userModel.findOne({ email }).select('+password')
     if (!user) {
         return next(new ErrorHandler('Invalid Email or Password', 400))
     }
 
-    const isPasswordMatch = await user.comparePassword(password)
+    // Compare password from DB to the one User added
+    const isPasswordMatch = await user.comparePassword(password) // comparePassword func exist in ./Models/userModels
     if (!isPasswordMatch) {
         return next(new ErrorHandler('Invalid Password', 400))
     }
 
+    // Sends token and response - Function exist in the Utils/jwt.ts
     sendToken(user, 200, res)
-
 })
