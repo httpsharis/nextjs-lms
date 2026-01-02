@@ -7,10 +7,11 @@ import ejs from 'ejs'
 import path from 'path';
 import sendMail from '../Utils/sendMail';
 import rateLimit from 'express-rate-limit'
+import { sendToken } from '../Utils/jwt';
 require('dotenv').config()
 
 
-// Register User
+// @Register-User
 interface RegisterBody { // @Interface defines the structure and shape of an object.
     name: string,
     email: string,
@@ -90,6 +91,7 @@ interface ActivationRequest {
     activation_code: string;
 }
 
+// @Activate-User
 export const activateUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     const { activation_token, activation_code } = req.body as ActivationRequest // Defining the types
 
@@ -118,4 +120,30 @@ export const activateUser = catchAsyncError(async (req: Request, res: Response, 
         success: true,
         message: 'Your account is Activated'
     })
+})
+
+// @Login-User 
+
+interface LoginUser {
+    email: string,
+    password: string,
+}
+export const loginUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password } = req.body as LoginUser;
+    if (!email || !password) {
+        return next(new ErrorHandler('Please Enter Email and password', 400))
+    }
+
+    const user = await userModel.findOne({ email }).select('+password')
+    if (!user) {
+        return next(new ErrorHandler('Invalid Email or Password', 400))
+    }
+
+    const isPasswordMatch = await user.comparePassword(password)
+    if (!isPasswordMatch) {
+        return next(new ErrorHandler('Invalid Password', 400))
+    }
+
+    sendToken(user, 200, res)
+
 })
