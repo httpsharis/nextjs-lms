@@ -14,7 +14,8 @@ app.use(cookieParser())
 
 // CROSS ORIGIN RESOURCE SHARING 
 app.use(cors({
-    origin: process.env.ORIGIN
+    origin: process.env.ORIGIN,
+    credentials: true
 }))
 
 // Routes

@@ -8,6 +8,7 @@ import path from 'path';
 import sendMail from '../Utils/sendMail';
 import rateLimit from 'express-rate-limit'
 import { sendToken } from '../Utils/jwt';
+import { redis } from '../config/redis';
 require('dotenv').config()
 
 
@@ -154,8 +155,11 @@ export const loginUser = catchAsyncError(async (req: Request, res: Response, nex
 
 // @logout-user 
 export const logoutUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    res.cookie("access_token", "")
-    res.cookie("refresh_token", "")
+    res.cookie("access_token", "", { maxAge: 1 })
+    res.cookie("refresh_token", "", { maxAge: 1 })
+
+    const userId = (req as any).user?._id || ""
+    redis.del(userId)
 
     res.status(200).json({
         success: true,
