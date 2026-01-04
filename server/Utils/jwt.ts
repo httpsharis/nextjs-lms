@@ -12,6 +12,24 @@ interface TokenOptions {
     secure?: boolean;
 }
 
+// parse environment to integrate with te fallback 
+export const accessTokenExpire = parseInt(process.env.ACCESS_TOKEN_EXPIRE || '300', 10)
+export const refreshTokenExpire = parseInt(process.env.REFRESH_TOKEN_EXPIRE || '1200', 10)
+
+// options for cookies
+export const accessTokenOptions: TokenOptions = {
+    expires: new Date(Date.now() + accessTokenExpire * 60 * 1000),
+    maxAge: accessTokenExpire * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'lax'
+}
+
+export const refreshTokenOptions: TokenOptions = {
+    expires: new Date(Date.now() + refreshTokenExpire * 60 * 60 * 1000),
+    maxAge: refreshTokenExpire * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'lax'
+}
 // Function that accepts the user, code and res
 export const sendToken = (user: IUser, statusCode: number, res: Response) => {
     // a. Generates Tokens
@@ -20,25 +38,6 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
 
     // b. Upload session to redis
     redis.set(user._id.toString(), JSON.stringify(user) as any)
-
-    // parse environment to integrate with te fallback 
-    const accessTokenExpire = parseInt(process.env.ACCESS_TOKEN_EXPIRE || '300', 10)
-    const refreshTokenExpire = parseInt(process.env.REFRESH_TOKEN_EXPIRE || '1200', 10)
-
-    // options for cookies
-    const accessTokenOptions: TokenOptions = {
-        expires: new Date(Date.now() + accessTokenExpire * 1000),
-        maxAge: accessTokenExpire * 1000,
-        httpOnly: true,
-        sameSite: 'lax'
-    }
-
-    const refreshTokenOptions: TokenOptions = {
-        expires: new Date(Date.now() + refreshTokenExpire * 1000),
-        maxAge: refreshTokenExpire * 1000,
-        httpOnly: true,
-        sameSite: 'lax'
-    }
 
     // This func will make the access token secure when in production mode.
     if (process.env.NODE_ENV === 'production') {

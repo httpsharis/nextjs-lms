@@ -1,16 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, request } from 'express';
 import userModel, { IUser } from '../Models/userModel';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import ejs from 'ejs'
 import path from 'path';
 import sendMail from '../Utils/sendMail';
 import rateLimit from 'express-rate-limit'
-import { sendToken } from '../Utils/jwt';
+import { accessTokenOptions, refreshTokenOptions, sendToken } from '../Utils/jwt';
 import { redis } from '../config/redis';
+import { getUserById } from '../Services/userService';
 require('dotenv').config()
 
+interface AuthenticatedRequest extends Request {
+    user?: IUser;
+}
 
 // @Register-User
 interface RegisterBody { // @Interface defines the structure and shape of an object.
@@ -154,15 +158,52 @@ export const loginUser = catchAsyncError(async (req: Request, res: Response, nex
 })
 
 // @logout-user 
-export const logoutUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+export const logoutUser = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     res.cookie("access_token", "", { maxAge: 1 })
     res.cookie("refresh_token", "", { maxAge: 1 })
 
-    const userId = (req as any).user?._id || ""
+    const userId = req.user?._id?.toString() || ""
     redis.del(userId)
 
     res.status(200).json({
         success: true,
         message: "User Logged out successfully!"
     })
+})
+
+// @update-access-token
+export const updateAccessToken = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const refresh_token = req.cookies.refresh_token as string;
+    const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload
+    if (!decoded) {
+        return next(new ErrorHandler('Could not refresh token', 400))
+    }
+
+    const session = await redis.get(decoded.id as string)
+    if (!session) {
+        return next(new ErrorHandler('Could not refresh token', 400))
+    }
+
+    const user = JSON.parse(session);
+
+    const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: '5m' })
+    const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: '3d' })
+
+    // Updating the Cookie
+    res.cookie("access_token", accessToken, accessTokenOptions)
+    res.cookie("refresh_token", refreshToken, refreshTokenOptions)
+
+    res.status(200).json({
+        success: true,
+        accessToken
+    })
+})
+
+// @get-User-Info - Getting the info from @userService.ts file
+export const getUserInfo = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const userId = req.user?._id.toString()
+    if (!userId) {
+        return next(new ErrorHandler('User not found', 404))
+    }
+    getUserById(userId, res)
 })

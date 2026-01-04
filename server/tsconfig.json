@@ -15,12 +15,14 @@
             "es2017"
         ],
         "typeRoots": [
-            "./@types",
-            "./node_modules/@types"
-        ]
+            "./node_modules/@types",
+            "./@types"
+        ],
+        "esModuleInterop": true,
+        "skipLibCheck": true
     },
     "include": [
-        "./**/*",
-        "custom.d.ts"
+        "./**/*.ts",
+        "./@types/**/*.d.ts"
     ]
 }
