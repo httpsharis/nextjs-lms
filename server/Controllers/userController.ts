@@ -207,3 +207,30 @@ export const getUserInfo = catchAsyncError(async (req: AuthenticatedRequest, res
     }
     getUserById(userId, res)
 })
+
+interface SocialAuthBody {
+    email: string;
+    name: string;
+    avatar: string;
+}
+
+// @socialAuth
+export const socialAuth = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const { email, name, avatar } = req.body as SocialAuthBody
+    const user = await userModel.findOne({ email });
+    if (!user) {
+        const newUser = await userModel.create({
+            email,
+            name,
+            avatar: {
+                public_id: "social_auth",
+                url: avatar
+            },
+            isSocial: true
+            // No password needed!
+        });
+        sendToken(newUser, 200, res)
+    } else {
+        sendToken(user, 200, res)
+    }
+})

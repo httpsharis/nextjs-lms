@@ -8,13 +8,14 @@ const emailRegExPattern: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export interface IUser extends Document {
     name: string;
     email: string;
-    password: string;
+    password?: string; // Make optional for social users
     avatar: {
         public_id: string,
         url: string
     };
     role: string;
     isVerified: boolean;
+    isSocial: boolean; // Add this
     courses: Array<{ courseId: string }>
     // Compare pass Method
     comparePassword: (password: string) => Promise<boolean>
@@ -26,23 +27,30 @@ export interface IUser extends Document {
 const userSchema: Schema<IUser> = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, "Please enter you name"]
+        required: [true, "Please enter your name"]
     },
     email: {
         type: String,
-        required: [true, "Please enter you email"],
+        required: [true, "Please enter your email"],
         validate: {
             validator: function (value: string) {
                 return emailRegExPattern.test(value)
             },
-            message: "Please enter the valid Email"
+            message: "Please enter a valid Email"
         },
         unique: true,
     },
     password: {
         type: String,
-        required: [true, "Please enter you password"],
-        minLength: [6, "Password must be at least 6 Characters"]
+        required: function (this: IUser) {
+            return !this.isSocial; // Only require password if NOT a social user
+        },
+        minLength: [6, "Password must be at least 6 Characters"],
+        select: false
+    },
+    isSocial: {
+        type: Boolean,
+        default: false,
     },
     avatar: {
         public_id: String,
@@ -59,26 +67,23 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     courses: [
         {
             courseId: String,
-
         }
     ]
 }, { timestamps: true })
 
 
 // Hash Password
-userSchema.pre('save', async function () { // @pre('save') is mongoose hook that runs before saving it in the database
-    if (!this.isModified('password')) return;
-
+userSchema.pre('save', async function () {
+    if (!this.isModified('password') || !this.password) return;
     this.password = await bcrypt.hash(this.password, 10);
 });
 
-// @Sign-Access-Token - Generates an access token when login in.
+// @Sign-Access-Token
 userSchema.methods.SignAccessToken = function () {
-    // An Access Token will be assigned to the user _id after login
     return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || '', { expiresIn: '5m' })
 }
 
-// @Sign-Refresh-Token - Generates the refresh token
+// @Sign-Refresh-Token
 userSchema.methods.SignRefreshToken = function () {
     return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || '', { expiresIn: '3d' })
 }
@@ -88,5 +93,5 @@ userSchema.methods.comparePassword = async function (enteredPassword: string): P
     return await bcrypt.compare(enteredPassword, this.password)
 }
 
-const userModel: Model<IUser> = mongoose.model("User", userSchema)
-export default userModel; 
+const userModel: Model<IUser> = mongoose.model("User", userSchema);
+export default userModel;
