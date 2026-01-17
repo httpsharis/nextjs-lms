@@ -7,7 +7,6 @@ const UserRouter = express.Router();
 
 UserRouter.post('/register', registerLimiter, registerUser)
 UserRouter.post('/activate-user', activateUser)
-
 UserRouter.post('/login', loginUser)
 UserRouter.get('/logout', isAuthenticated, logoutUser)
 UserRouter.get('/refresh-token', updateAccessToken)

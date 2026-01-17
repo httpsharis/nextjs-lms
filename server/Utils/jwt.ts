@@ -3,13 +3,24 @@ import { Response } from 'express';
 import { IUser } from '../Models/userModel';
 import { redis } from '../config/redis';
 
-// Interface will be saved in cookies
+/**
+ * AUTHENTICATION TOKEN SERVICE
+ * ----------------------------
+ * This file handles "Logging in" the user by giving them two digital keys:
+ * 1. Access Token: For quick, short-term access. (expires in 5 - 10 mins)
+ * 2. Refresh Token: To keep them logged in for a long time. (expires in 10-15 mins)
+ * 3. Redis: Saving user data in redis for quick session lookups
+ */
+
+/**
+ * Configuration for the "Cookie" (the digital box where tokens are stored in the browser).
+ */
 interface TokenOptions {
-    expires: Date;
-    maxAge: number;
-    httpOnly: boolean;
-    sameSite: 'lax' | 'strict' | 'none' | undefined;
-    secure?: boolean;
+    expires: Date;      // When the cookie disappears
+    maxAge: number;     // How long the cookie lives (in milliseconds)
+    httpOnly: boolean;  // If true, the browser's JavaScript cannot touch this (Security)
+    sameSite: 'lax' | 'strict' | 'none' | undefined; // Prevents other websites from stealing this cookie
+    secure?: boolean;   // Only send over HTTPS (Encrypted connection)
 }
 
 // parse environment to integrate with te fallback 
@@ -30,7 +41,16 @@ export const refreshTokenOptions: TokenOptions = {
     httpOnly: true,
     sameSite: 'lax'
 }
-// Function that accepts the user, code and res
+
+/**
+ * sendToken Logic:
+ * 1. Creates two encrypted tokens.
+ * 2. Saves user data in Redis (fast memory) for quick session lookups.
+ * 3. Sends tokens back to the browser in protected Cookies.
+ * * @param user - The user object from the Database.
+ * @param statusCode - The HTTP status (usually 200 or 201).
+ * @param res - The Express response object to send data back.
+ */
 export const sendToken = (user: IUser, statusCode: number, res: Response) => {
     // a. Generates Tokens
     const accessToken = user.SignAccessToken(); // expires after 5 to 10 mins

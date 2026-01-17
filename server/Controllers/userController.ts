@@ -3,85 +3,65 @@ import userModel, { IUser } from '../Models/userModel';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
 import jwt, { JwtPayload } from 'jsonwebtoken'
-import ejs from 'ejs'
-import path from 'path';
 import sendMail from '../Utils/sendMail';
 import rateLimit from 'express-rate-limit'
 import { accessTokenOptions, refreshTokenOptions, sendToken } from '../Utils/jwt';
 import { redis } from '../config/redis';
-import { getUserById } from '../Services/userService';
+import { createNewUser, getUserById } from '../Services/userService';
+import { checkUserExist } from '../Services/userService';
+import { createActivationToken } from '../Utils/activationToken';
+import { RegisterBody, ActivationRequest, LoginUser } from '@/@types';
+
 require('dotenv').config()
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
 }
 
-// @Register-User
-interface RegisterBody { // @Interface defines the structure and shape of an object.
-    name: string,
-    email: string,
-    password: string,
-    avatar?: string // @? Represents that this is optional for the user.
-}
+/**
+ * REGISTER USER CONTROLLER
+ * ------------------------
+ * Initiates the sign-up process for a new student.
+ * * @logic
+ * 1. Validation: Calls 'checkUserExist' service to prevent duplicate emails.
+ * 2. Tokenization: Packages user data into a temporary JWT (Activation Token).
+ * 3. Communication: Triggers an activation email containing a 4-digit code.
+ * * @param req - Express request containing 'RegisterBody' (name, email, password).
+ * @param res - Sends 201 status and the encoded activation token to the frontend.
+ * @param next - Error handler for database or mail-server failures.
+ */
 
 export const registerUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    // Defining the body = req.body
-    const { name, email, password, avatar } = req.body;
+    const { name, email, password } = req.body;
 
-    // Checking if email already Exist
-    const isEmailExist = await userModel.findOne({ email })
-    if (isEmailExist) {
-        return next(new ErrorHandler('Email already Exist', 400))
-    }
+    // Logic Check (userServices)
+    await checkUserExist(email);
 
-    // User body define
-    const user: RegisterBody = { name, email, password }
+    const user: RegisterBody = { name, email, password };
 
-    // activation token
-    const activationToken = createActivationToken(user)
-    const activationCode = activationToken.activationCode
-
-    const data = { user: { name: user.name }, activationCode }
-
-    // @ejs.renderFile - ejs function
-    // @path - Node.js utility that provides methods for working with file and directory paths
-    // @join - joins arguments together, Passed 2 arguments __dirname and ejs template file and data that we defined
-    const html = await ejs.renderFile(path.join(__dirname, "../mails/activationMail.ejs"), data)
+    // Security: Create temporary session
+    const activationToken = createActivationToken(user);
+    const activationCode = activationToken.activationCode;
+    const data = { user: { name: user.name }, activationCode };
 
     try {
+        // Send the "Payload" (data) to the email service
         await sendMail({
             email: user.email,
-            subject: "Activate you account",
+            subject: "Activate your account",
             template: "activationMail.ejs",
             data,
-        })
+        });
 
         res.status(201).json({
             success: true,
-            message: `Please Check you ${user.email} to activate your account`,
+            message: `Please check your email (${user.email}) to activate your account`,
             activationCode: activationToken.token,
-        })
+        });
     } catch (error: any) {
-        return next(new ErrorHandler("error.message", 400))
+        return next(new ErrorHandler(error.message, 400));
     }
-})
-
-interface ActivationToken {
-    token: string;
-    activationCode: string;
-}
-
-export const createActivationToken = (user: RegisterBody): ActivationToken => {
-    const activationCode = Math.floor(1000 + Math.random() * 9000).toString()
-
-    const token = jwt.sign({
-        user, activationCode
-    }, process.env.ACTIVATION_SECRET, {
-        expiresIn: '5m'
-    })
-
-    return { token, activationCode }
-}
+});
 
 // Rate Limit for the mails
 export const registerLimiter = rateLimit({
@@ -90,72 +70,91 @@ export const registerLimiter = rateLimit({
     message: 'Too many registration attempts, please try again later'
 })
 
-// Activate User
-interface ActivationRequest {
-    activation_token: string;
-    activation_code: string;
-}
 
-// @Activate-User
+/**
+ * ACTIVATE USER CONTROLLER
+ * ------------------------
+ * @logic
+ * 1. Decodes the token sent from the frontend.
+ * 2. Compares the 4-digit code provided by the user with the one in the token.
+ * 3. If they match, calls 'createNewUser' service to save the record.
+ */
 export const activateUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const { activation_token, activation_code } = req.body as ActivationRequest // Defining the types
+    const { activation_token, activation_code } = req.body as ActivationRequest;
 
+    // 1. Decode the JWT (The "Reservation Ticket")
     const newUser: { user: IUser; activationCode: string } = jwt.verify(
         activation_token,
         process.env.ACTIVATION_SECRET as string
-    ) as { user: IUser; activationCode: string }
+    ) as { user: IUser; activationCode: string };
 
+    // 2. Security Check: Does the code match?
     if (newUser.activationCode !== activation_code) {
-        return next(new ErrorHandler('Activation Code is Invalid', 400))
+        return next(new ErrorHandler('Invalid Activation Code', 400));
     }
 
     const { name, email, password } = newUser.user;
 
-    const existedUser = await userModel.findOne({ email })
+    // 3. Double Check: Did they register while this token was pending?
+    await checkUserExist(email);
 
-    if (existedUser) {
-        return next(new ErrorHandler('Email Already Exist!', 400))
-    }
+    // 4. Calling our NEW Service
+    const user = await createNewUser({
+        name,
+        email,
+        password,
+    });
 
-    const user = await userModel.create({
-        name, email, password
-    })
-
+    // 5. Success Response
     res.status(201).json({
         success: true,
-        message: 'Your account is Activated'
-    })
-})
+        message: 'Your account is now active! You can log in.',
+        user // Optional: you can send the user data back here
+    });
+});
 
-// @Login-User 
-interface LoginUser {
-    email: string,
-    password: string,
-}
+/**
+ * LOGIN USER CONTROLLER
+ * --------------------
+ * @logic
+ * 1. Validates that the user actually typed something.
+ * 2. Finds the user in MongoDB (including the hidden password field).
+ * 3. Compares the provided password with the hashed one in the DB.
+ * 4. Calls 'sendToken' to handle Redis storage and Cookie delivery.
+ */
 export const loginUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    // Extract credentials
     const { email, password } = req.body as LoginUser;
 
-    // Validate Input: Checks if the user inputs the Email & Password
+    // 1. Logic Check: Are fields empty?
     if (!email || !password) {
-        return next(new ErrorHandler('Please Enter Email and password', 400))
+        return next(new ErrorHandler('Please enter both email and password', 400));
     }
 
-    // Check DB if the user already exit?
-    const user = await userModel.findOne({ email }).select('+password')
+    // 2. Database Check: Find user
+    // We use .select('+password') because we usually hide the password for security
+    const user = await userModel.findOne({ email }).select('+password');
+
     if (!user) {
-        return next(new ErrorHandler('Invalid Email or Password', 400))
+        return next(new ErrorHandler('Invalid email or password', 400));
     }
 
-    // Compare password from DB to the one User added
-    const isPasswordMatch = await user.comparePassword(password) // comparePassword func exist in ./Models/userModels
+    // 3. Password Verification
+    // This calls the method you wrote in your User Model
+    const isPasswordMatch = await user.comparePassword(password);
+
     if (!isPasswordMatch) {
-        return next(new ErrorHandler('Invalid Password', 400))
+        return next(new ErrorHandler('Invalid email or password', 400));
     }
 
-    // Sends token and response - Function exist in the Utils/jwt.ts
-    sendToken(user, 200, res)
-})
+    /**
+     * 4. The "Golden Step": sendToken
+     * This function (from your jwt.ts file):
+     * - Creates Access & Refresh tokens.
+     * - Saves the user session in REDIS.
+     * - Sends Cookies to the browser.
+     */
+    sendToken(user, 200, res);
+});
 
 // @logout-user 
 export const logoutUser = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -171,33 +170,54 @@ export const logoutUser = catchAsyncError(async (req: AuthenticatedRequest, res:
     })
 })
 
-// @update-access-token
+/**
+ * REFRESH TOKEN CONTROLLER
+ * ------------------------
+ * @logic
+ * 1. Pulls the Refresh Token from the user's cookies.
+ * 2. Verifies the token is real (not faked).
+ * 3. Checks Redis to see if the user session still exists.
+ * 4. Issues a BRAND NEW pair of tokens to keep the user active.
+ */
 export const updateAccessToken = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const refresh_token = req.cookies.refresh_token as string;
-    const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload
-    if (!decoded) {
-        return next(new ErrorHandler('Could not refresh token', 400))
+    try {
+        // 1. Get the "Voucher" from the cookie
+        const refresh_token = req.cookies.refresh_token as string;
+
+        // 2. Verify the Voucher is valid
+        const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
+
+        if (!decoded) {
+            return next(new ErrorHandler('Refresh token is invalid or expired', 400));
+        }
+
+        // 3. Check the "Clipboard" (Redis)
+        // We look for the user by the ID stored inside the Refresh Token
+        const session = await redis.get(decoded.id as string);
+
+        if (!session) {
+            return next(new ErrorHandler('Please login to access this resource', 400));
+        }
+
+        const user = JSON.parse(session);
+
+        // 4. Generate NEW tokens (Resetting the timer)
+        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: '5m' });
+        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: '3d' });
+
+        // 5. Update the Cookies on the user's browser
+        res.cookie("access_token", accessToken, accessTokenOptions);
+        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+
+        res.status(200).json({
+            success: true,
+            accessToken // We send the new access token in the response too
+        });
+
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 400));
     }
-
-    const session = await redis.get(decoded.id as string)
-    if (!session) {
-        return next(new ErrorHandler('Could not refresh token', 400))
-    }
-
-    const user = JSON.parse(session);
-
-    const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: '5m' })
-    const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: '3d' })
-
-    // Updating the Cookie
-    res.cookie("access_token", accessToken, accessTokenOptions)
-    res.cookie("refresh_token", refreshToken, refreshTokenOptions)
-
-    res.status(200).json({
-        success: true,
-        accessToken
-    })
-})
+});
 
 // @get-User-Info - Getting the info from @userService.ts file
 export const getUserInfo = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
