@@ -37,3 +37,8 @@ export interface UpdateUserInfo {
     email?: string;
 }
 
+export interface UpdatePassword {
+    oldPassword: string;
+    newPassword: string;
+}
+

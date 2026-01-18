@@ -10,7 +10,7 @@ import { redis } from '../config/redis';
 import { createNewUser, getUserById } from '../Services/userService';
 import { checkUserExist } from '../Services/userService';
 import { createActivationToken } from '../Utils/activationToken';
-import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo } from '@/@types';
+import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo, UpdatePassword } from '@/@types';
 
 require('dotenv').config()
 
@@ -301,3 +301,62 @@ export const updateUserInfo = catchAsyncError(async (req: AuthenticatedRequest, 
 		return next(new ErrorHandler(error.message, 400))
 	}
 })
+
+/**
+ * UPDATE USER PASSWORD
+ * ----------------
+ * 1. Finding User usin ID
+ * 2. Checking Old and New Password is entered or not
+ * 3. Checking user
+ * 4. Verifying if the user is created through Social Auth
+ * 5. Comparing old password
+ * 6. Comparing new password if same as the old one
+ * 7. Update and save 
+ * 8. Delete the old cache when saving new one
+ */
+export const updateUserPassword = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+	try {
+		// 1. Reqeusting the body
+		const { oldPassword, newPassword } = req.body as UpdatePassword;
+
+		// 2. VALIDATION: Check for specific fields
+		if (!oldPassword || !newPassword) {
+			return next(new ErrorHandler("Please enter both old and new password", 400));
+		}
+
+		// 2. USER CHECK: Fetch the user and include the hidden password field
+		const user = await userModel.findById(req.user?._id).select("+password");
+
+		// 3. SOCIAL AUTH CHECK: If password doesn't exist, they can't "update" it
+		if (!user?.password) {
+			return next(new ErrorHandler("Social login users cannot change passwords here", 400));
+		}
+
+		// 4. VERIFICATION: Compare old password
+		const isPasswordMatch = await user.comparePassword(oldPassword);
+		if (!isPasswordMatch) {
+			return next(new ErrorHandler("Old password is incorrect", 400));
+		}
+
+		// 5. Check if the old pass is same as the new one
+		const isSamePassword = await user.comparePassword(newPassword);
+		if (isSamePassword) {
+			return next(new ErrorHandler("New password cannot be the same as the old one", 400));
+		}
+
+		// 5. ACTION: Update and Save
+		user.password = newPassword;
+		await user.save();
+
+		await redis.del(user._id.toString());
+
+		res.status(201).json({
+			success: true,
+			message: "Password Updated Successfully",
+		});
+
+	} catch (error: any) {
+		// PRO TIP: Don't put "error.message" in quotes, use the actual variable!
+		return next(new ErrorHandler(error.message, 400));
+	}
+});

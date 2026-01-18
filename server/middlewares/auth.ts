@@ -39,5 +39,6 @@ export const isAuthorized = (...roles: string[]) => {
                 new ErrorHandler(`Role: ${userRole || "unknown"} is not allowed to access this resource`, 403)
             )
         }
+        next()
     }
 }

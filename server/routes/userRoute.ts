@@ -8,7 +8,8 @@ import {
     getUserInfo,
     socialAuth,
     updateUserInfo,
-    registerLimiter
+    registerLimiter,
+    updateUserPassword
 } from '../Controllers/userController';
 import { isAuthenticated } from '../middlewares/auth';
 
@@ -34,5 +35,6 @@ UserRouter.get('/refresh-token', updateAccessToken);
 UserRouter.get('/me', isAuthenticated, getUserInfo);
 UserRouter.get('/logout', isAuthenticated, logoutUser);
 UserRouter.put('/update-user-info', isAuthenticated, updateUserInfo);
+UserRouter.put('/update-password', isAuthenticated, updateUserPassword)
 
 export default UserRouter;

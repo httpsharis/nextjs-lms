@@ -23,5 +23,4 @@ import UserRouter from './routes/userRoute';
 
 app.use('/api/v1', UserRouter)
 
-
 app.use(errorMiddleware)
