@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import userModel, { IUser } from '../Models/userModel';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
@@ -10,13 +10,9 @@ import { redis } from '../config/redis';
 import { createNewUser, getUserById } from '../Services/userService';
 import { checkUserExist } from '../Services/userService';
 import { createActivationToken } from '../Utils/activationToken';
-import { RegisterBody, ActivationRequest, LoginUser } from '@/@types';
+import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo } from '@/@types';
 
 require('dotenv').config()
-
-interface AuthenticatedRequest extends Request {
-    user?: IUser;
-}
 
 /**
  * REGISTER USER CONTROLLER
@@ -32,42 +28,42 @@ interface AuthenticatedRequest extends Request {
  */
 
 export const registerUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const { name, email, password } = req.body;
+	const { name, email, password } = req.body;
 
-    // Logic Check (userServices)
-    await checkUserExist(email);
+	// Logic Check (userServices)
+	await checkUserExist(email);
 
-    const user: RegisterBody = { name, email, password };
+	const user: RegisterBody = { name, email, password };
 
-    // Security: Create temporary session
-    const activationToken = createActivationToken(user);
-    const activationCode = activationToken.activationCode;
-    const data = { user: { name: user.name }, activationCode };
+	// Security: Create temporary session
+	const activationToken = createActivationToken(user);
+	const activationCode = activationToken.activationCode;
+	const data = { user: { name: user.name }, activationCode };
 
-    try {
-        // Send the "Payload" (data) to the email service
-        await sendMail({
-            email: user.email,
-            subject: "Activate your account",
-            template: "activationMail.ejs",
-            data,
-        });
+	try {
+		// Send the "Payload" (data) to the email service
+		await sendMail({
+			email: user.email,
+			subject: "Activate your account",
+			template: "activationMail.ejs",
+			data,
+		});
 
-        res.status(201).json({
-            success: true,
-            message: `Please check your email (${user.email}) to activate your account`,
-            activationCode: activationToken.token,
-        });
-    } catch (error: any) {
-        return next(new ErrorHandler(error.message, 400));
-    }
+		res.status(201).json({
+			success: true,
+			message: `Please check your email (${user.email}) to activate your account`,
+			activationCode: activationToken.token,
+		});
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 400));
+	}
 });
 
 // Rate Limit for the mails
 export const registerLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 Min
-    max: 3, // 3 Attempts per 15 min
-    message: 'Too many registration attempts, please try again later'
+	windowMs: 15 * 60 * 1000, // 15 Min
+	max: 3, // 3 Attempts per 15 min
+	message: 'Too many registration attempts, please try again later'
 })
 
 
@@ -80,37 +76,37 @@ export const registerLimiter = rateLimit({
  * 3. If they match, calls 'createNewUser' service to save the record.
  */
 export const activateUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const { activation_token, activation_code } = req.body as ActivationRequest;
+	const { activation_token, activation_code } = req.body as ActivationRequest;
 
-    // 1. Decode the JWT (The "Reservation Ticket")
-    const newUser: { user: IUser; activationCode: string } = jwt.verify(
-        activation_token,
-        process.env.ACTIVATION_SECRET as string
-    ) as { user: IUser; activationCode: string };
+	// 1. Decode the JWT (The "Reservation Ticket")
+	const newUser: { user: IUser; activationCode: string } = jwt.verify(
+		activation_token,
+		process.env.ACTIVATION_SECRET as string
+	) as { user: IUser; activationCode: string };
 
-    // 2. Security Check: Does the code match?
-    if (newUser.activationCode !== activation_code) {
-        return next(new ErrorHandler('Invalid Activation Code', 400));
-    }
+	// 2. Security Check: Does the code match?
+	if (newUser.activationCode !== activation_code) {
+		return next(new ErrorHandler('Invalid Activation Code', 400));
+	}
 
-    const { name, email, password } = newUser.user;
+	const { name, email, password } = newUser.user;
 
-    // 3. Double Check: Did they register while this token was pending?
-    await checkUserExist(email);
+	// 3. Double Check: Did they register while this token was pending?
+	await checkUserExist(email);
 
-    // 4. Calling our NEW Service
-    const user = await createNewUser({
-        name,
-        email,
-        password,
-    });
+	// 4. Calling our NEW Service
+	const user = await createNewUser({
+		name,
+		email,
+		password,
+	});
 
-    // 5. Success Response
-    res.status(201).json({
-        success: true,
-        message: 'Your account is now active! You can log in.',
-        user // Optional: you can send the user data back here
-    });
+	// 5. Success Response
+	res.status(201).json({
+		success: true,
+		message: 'Your account is now active! You can log in.',
+		user // Optional: you can send the user data back here
+	});
 });
 
 /**
@@ -123,51 +119,51 @@ export const activateUser = catchAsyncError(async (req: Request, res: Response, 
  * 4. Calls 'sendToken' to handle Redis storage and Cookie delivery.
  */
 export const loginUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const { email, password } = req.body as LoginUser;
+	const { email, password } = req.body as LoginUser;
 
-    // 1. Logic Check: Are fields empty?
-    if (!email || !password) {
-        return next(new ErrorHandler('Please enter both email and password', 400));
-    }
+	// 1. Logic Check: Are fields empty?
+	if (!email || !password) {
+		return next(new ErrorHandler('Please enter both email and password', 400));
+	}
 
-    // 2. Database Check: Find user
-    // We use .select('+password') because we usually hide the password for security
-    const user = await userModel.findOne({ email }).select('+password');
+	// 2. Database Check: Find user
+	// We use .select('+password') because we usually hide the password for security
+	const user = await userModel.findOne({ email }).select('+password');
 
-    if (!user) {
-        return next(new ErrorHandler('Invalid email or password', 400));
-    }
+	if (!user) {
+		return next(new ErrorHandler('Invalid email or password', 400));
+	}
 
-    // 3. Password Verification
-    // This calls the method you wrote in your User Model
-    const isPasswordMatch = await user.comparePassword(password);
+	// 3. Password Verification
+	// This calls the method you wrote in your User Model
+	const isPasswordMatch = await user.comparePassword(password);
 
-    if (!isPasswordMatch) {
-        return next(new ErrorHandler('Invalid email or password', 400));
-    }
+	if (!isPasswordMatch) {
+		return next(new ErrorHandler('Invalid email or password', 400));
+	}
 
-    /**
-     * 4. The "Golden Step": sendToken
-     * This function (from your jwt.ts file):
-     * - Creates Access & Refresh tokens.
-     * - Saves the user session in REDIS.
-     * - Sends Cookies to the browser.
-     */
-    sendToken(user, 200, res);
+	/**
+	 * 4. The "Golden Step": sendToken
+	 * This function (from your jwt.ts file):
+	 * - Creates Access & Refresh tokens.
+	 * - Saves the user session in REDIS.
+	 * - Sends Cookies to the browser.
+	 */
+	sendToken(user, 200, res);
 });
 
 // @logout-user 
 export const logoutUser = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    res.cookie("access_token", "", { maxAge: 1 })
-    res.cookie("refresh_token", "", { maxAge: 1 })
+	res.cookie("access_token", "", { maxAge: 1 })
+	res.cookie("refresh_token", "", { maxAge: 1 })
 
-    const userId = req.user?._id?.toString() || ""
-    redis.del(userId)
+	const userId = req.user?._id?.toString() || ""
+	redis.del(userId)
 
-    res.status(200).json({
-        success: true,
-        message: "User Logged out successfully!"
-    })
+	res.status(200).json({
+		success: true,
+		message: "User Logged out successfully!"
+	})
 })
 
 /**
@@ -179,78 +175,129 @@ export const logoutUser = catchAsyncError(async (req: AuthenticatedRequest, res:
  * 3. Checks Redis to see if the user session still exists.
  * 4. Issues a BRAND NEW pair of tokens to keep the user active.
  */
-export const updateAccessToken = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        // 1. Get the "Voucher" from the cookie
-        const refresh_token = req.cookies.refresh_token as string;
+export const updateAccessToken = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+	try {
+		const refresh_token = req.cookies.refresh_token as string;
+		const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
 
-        // 2. Verify the Voucher is valid
-        const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
+		if (!decoded) {
+			return next(new ErrorHandler('Refresh token is invalid or expired', 400));
+		}
 
-        if (!decoded) {
-            return next(new ErrorHandler('Refresh token is invalid or expired', 400));
-        }
+		const session = await redis.get(decoded.id as string);
+		if (!session) {
+			return next(new ErrorHandler('Please login to access this resource', 400));
+		}
 
-        // 3. Check the "Clipboard" (Redis)
-        // We look for the user by the ID stored inside the Refresh Token
-        const session = await redis.get(decoded.id as string);
+		let user: any;
+		try {
+			// Logic: .trim() handles invisible characters that crash the parser
+			const cleanSession = session.trim();
+			user = JSON.parse(cleanSession);
+			req.user = user;
+		} catch (error) {
+			// If the data is STILL bad, delete it so it stops the loop
+			await redis.del(decoded.id as string);
+			console.error("Corrupted JSON found and deleted:", session);
+			return next(new ErrorHandler('Session corrupted. Please login again.', 400));
+		}
 
-        if (!session) {
-            return next(new ErrorHandler('Please login to access this resource', 400));
-        }
+		// 4. Now 'user' is actually defined and carries the _id!
+		const accessToken = jwt.sign(
+			{ id: user._id },
+			process.env.ACCESS_TOKEN as string,
+			{ expiresIn: '5m' }
+		);
 
-        const user = JSON.parse(session);
+		const refreshToken = jwt.sign(
+			{ id: user._id },
+			process.env.REFRESH_TOKEN as string,
+			{ expiresIn: '3d' }
+		);
 
-        // 4. Generate NEW tokens (Resetting the timer)
-        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: '5m' });
-        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: '3d' });
+		res.cookie("access_token", accessToken, accessTokenOptions);
+		res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-        // 5. Update the Cookies on the user's browser
-        res.cookie("access_token", accessToken, accessTokenOptions);
-        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+		res.status(200).json({
+			success: true,
+			accessToken
+		});
 
-        res.status(200).json({
-            success: true,
-            accessToken // We send the new access token in the response too
-        });
-
-    } catch (error: any) {
-        return next(new ErrorHandler(error.message, 400));
-    }
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 400));
+	}
 });
 
 // @get-User-Info - Getting the info from @userService.ts file
 export const getUserInfo = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const userId = req.user?._id.toString()
-    if (!userId) {
-        return next(new ErrorHandler('User not found', 404))
-    }
-    getUserById(userId, res)
+	const userId = req.user?._id.toString()
+	if (!userId) {
+		return next(new ErrorHandler('User not found', 404))
+	}
+	getUserById(userId, res)
 })
 
 interface SocialAuthBody {
-    email: string;
-    name: string;
-    avatar: string;
+	email: string;
+	name: string;
+	avatar: string;
 }
 
 // @socialAuth
 export const socialAuth = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const { email, name, avatar } = req.body as SocialAuthBody
-    const user = await userModel.findOne({ email });
-    if (!user) {
-        const newUser = await userModel.create({
-            email,
-            name,
-            avatar: {
-                public_id: "social_auth",
-                url: avatar
-            },
-            isSocial: true
-            // No password needed!
-        });
-        sendToken(newUser, 200, res)
-    } else {
-        sendToken(user, 200, res)
-    }
+	const { email, name, avatar } = req.body as SocialAuthBody
+	const user = await userModel.findOne({ email });
+	if (!user) {
+		const newUser = await userModel.create({
+			email,
+			name,
+			avatar: {
+				public_id: "social_auth",
+				url: avatar
+			},
+			isSocial: true
+			// No password needed!
+		});
+		sendToken(newUser, 200, res)
+	} else {
+		sendToken(user, 200, res)
+	}
+})
+
+/**
+ * UPDATE USER INFO
+ * ----------------
+ * 1. Finding User usin ID
+ * 2. User can change the Email but can not repeat
+ * 3. User can change name 
+ * 4. Updating the User in redis 
+ */
+export const updateUserInfo = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+	try {
+		const { name, email } = req.body as UpdateUserInfo
+		const userId = req.user?._id
+		const user = await userModel.findById(userId)
+
+		if (name && user) user.name = name;
+
+		if (email && user) {
+			const isEmailExist = await userModel.findOne({ email })
+			if (isEmailExist) {
+				return next(new ErrorHandler("Email already exist", 400))
+			}
+			user.email = email
+		}
+
+		await user?.save()
+
+		await redis.set(userId.toString(), JSON.stringify(user))
+
+		res.status(201).json({
+			success: true,
+			message: "Profile updated successfully. Please refresh to see changes.",
+			user
+		})
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 400))
+	}
 })

@@ -43,35 +43,35 @@ export const refreshTokenOptions: TokenOptions = {
 }
 
 /**
- * sendToken Logic:
- * 1. Creates two encrypted tokens.
- * 2. Saves user data in Redis (fast memory) for quick session lookups.
- * 3. Sends tokens back to the browser in protected Cookies.
- * * @param user - The user object from the Database.
- * @param statusCode - The HTTP status (usually 200 or 201).
- * @param res - The Express response object to send data back.
+ * SEND TOKEN UTILITY
+ * ------------------
+ * @async
+ * @description
+ * 1. Signs Access/Refresh tokens via User Model methods.
+ * 2. Syncs user document to Redis for fast session retrieval.
+ * 3. Configures and sets HTTP-only cookies for security.
+ * * @param user - The authenticated user document.
+ * @param statusCode - HTTP status code (usually 200 or 201).
+ * @param res - Express response object.
  */
-export const sendToken = (user: IUser, statusCode: number, res: Response) => {
-    // a. Generates Tokens
-    const accessToken = user.SignAccessToken(); // expires after 5 to 10 mins
-    const refreshToken = user.SignRefreshToken(); // Keep the user logged in as they're active
+export const sendToken = async (user: IUser, statusCode: number, res: Response) => {
+    const accessToken = user.SignAccessToken();
+    const refreshToken = user.SignRefreshToken();
 
-    // b. Upload session to redis
-    redis.set(user._id.toString(), JSON.stringify(user) as any)
+    const userObj = user.toObject();
+    const sessionData = JSON.stringify(userObj);
+    await redis.set(user._id.toString(), sessionData);
 
-    // This func will make the access token secure when in production mode.
     if (process.env.NODE_ENV === 'production') {
         accessTokenOptions.secure = true;
     }
 
-    // c. Set Cookies
-    res.cookie("access_token", accessToken, accessTokenOptions)
-    res.cookie("refresh_token", refreshToken, refreshTokenOptions)
+    res.cookie("access_token", accessToken, accessTokenOptions);
+    res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-    // d. send response
     res.status(statusCode).json({
         success: true,
         user,
         accessToken
-    })
-}
+    });
+};

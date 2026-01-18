@@ -4,6 +4,12 @@
  * This is the master list for all objects in our LMS.
  */
 
+import { IUser } from "@/Models/userModel";
+import { Request } from 'express';
+
+export interface AuthenticatedRequest extends Request {
+    user?: IUser;
+}
 export interface RegisterBody { // @Interface defines the structure and shape of an object.
     name: string,
     email: string,
@@ -16,12 +22,18 @@ export interface ActivationToken {
     activationCode: string;
 }
 
-interface ActivationRequest {
+export interface ActivationRequest {
     activation_token: string;
     activation_code: string;
 }
 
-interface LoginUser {
+export interface LoginUser {
     email: string,
     password: string,
 }
+
+export interface UpdateUserInfo {
+    name?: string;
+    email?: string;
+}
+

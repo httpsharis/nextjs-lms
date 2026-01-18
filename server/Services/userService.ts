@@ -1,15 +1,19 @@
-import ErrorHandler from "@/Utils/ErrorHandler";
+import ErrorHandler from "../Utils/ErrorHandler";
 import userModel from "../Models/userModel";
 import { Response } from "express";
+import { redis } from "../config/redis";
 
 
 // @get-User-Info
 export const getUserById = async (id: string, res: Response) => {
-    const user = await userModel.findById(id)
-    res.status(201).json({
-        success: true,
-        user
-    })
+    const userJson = await redis.get(id)
+    if (userJson) {
+        const user = JSON.parse(userJson)
+        res.status(201).json({
+            success: true,
+            user
+        })
+    }
 }
 
 /**
@@ -21,7 +25,7 @@ export const getUserById = async (id: string, res: Response) => {
 export const checkUserExist = async (email: string) => {
     const isEmailExist = await userModel.findOne({ email })
     if (isEmailExist) {
-        throw new ErrorHandler('Email already exist', 400)
+        throw new ErrorHandler("Email already exist", 400)
     }
     return false
 }
