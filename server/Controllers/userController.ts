@@ -276,6 +276,9 @@ export const updateUserInfo = catchAsyncError(async (req: AuthenticatedRequest, 
 	try {
 		const { name, email } = req.body as UpdateUserInfo
 		const userId = req.user?._id
+		if (!userId) {
+			return next(new ErrorHandler('User not found', 404))
+		}
 		const user = await userModel.findById(userId)
 
 		if (name && user) user.name = name;
