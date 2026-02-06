@@ -10,7 +10,8 @@ import { redis } from '../config/redis';
 import { createNewUser, getUserById } from '../Services/userService';
 import { checkUserExist } from '../Services/userService';
 import { createActivationToken } from '../Utils/activationToken';
-import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo, UpdatePassword } from '@/@types';
+import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo, UpdatePassword, UpdateProfilePicture } from '@/@types';
+import { v2 as cloudinary } from 'cloudinary';
 
 require('dotenv').config()
 
@@ -308,7 +309,7 @@ export const updateUserInfo = catchAsyncError(async (req: AuthenticatedRequest, 
 /**
  * UPDATE USER PASSWORD
  * ----------------
- * 1. Finding User usin ID
+ * 1. Finding User userID
  * 2. Checking Old and New Password is entered or not
  * 3. Checking user
  * 4. Verifying if the user is created through Social Auth
@@ -319,10 +320,9 @@ export const updateUserInfo = catchAsyncError(async (req: AuthenticatedRequest, 
  */
 export const updateUserPassword = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
-		// 1. Reqeusting the body
+		// 1. Requesting the body
 		const { oldPassword, newPassword } = req.body as UpdatePassword;
 
-		// 2. VALIDATION: Check for specific fields
 		if (!oldPassword || !newPassword) {
 			return next(new ErrorHandler("Please enter both old and new password", 400));
 		}
@@ -359,7 +359,42 @@ export const updateUserPassword = catchAsyncError(async (req: AuthenticatedReque
 		});
 
 	} catch (error: any) {
-		// PRO TIP: Don't put "error.message" in quotes, use the actual variable!
 		return next(new ErrorHandler(error.message, 400));
 	}
 });
+
+/**
+ * UPDATE PROFILE PICTURE
+ * ----------------
+ * 1. 
+ */
+
+export const updateProfilePicture = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const { avatar } = req.body as UpdateProfilePicture;
+		const user = req.user;
+
+		if (!user) return next(new ErrorHandler('User not found', 404));
+
+		// Upload new image first
+		const myCloud = await cloudinary.uploader.upload(avatar, { folder: 'avatars', width: 150, crop: 'fill', resource_type: 'image' });
+
+		// If there was an old image, remove it
+		if (user.avatar?.public_id && user.avatar.public_id !== "social_auth") {
+			await cloudinary.uploader.destroy(user.avatar.public_id);
+		}
+
+		// Update user avatar with the upload response (awaited result has public_id and secure_url)
+		user.avatar = {
+			public_id: myCloud.public_id,
+			url: myCloud.secure_url || (myCloud as any).url || ""
+		};
+
+		await user.save();
+		await redis.set(user._id.toString(), JSON.stringify(user));
+
+		res.status(200).json({ success: true, message: 'Profile picture updated', avatar: user.avatar });
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 404));
+	}
+})
