@@ -369,7 +369,7 @@ export const updateUserPassword = catchAsyncError(async (req: AuthenticatedReque
  * 1. 
  */
 
-export const updateProfilePicture = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+export const updateProfilePicture = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
 		const { avatar } = req.body as UpdateProfilePicture;
 		const user = req.user;
