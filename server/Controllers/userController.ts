@@ -372,7 +372,8 @@ export const updateUserPassword = catchAsyncError(async (req: AuthenticatedReque
 export const updateProfilePicture = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
 		const { avatar } = req.body as UpdateProfilePicture;
-		const user = req.user;
+		
+		const user = await userModel.findById(req.user?._id);
 
 		if (!user) return next(new ErrorHandler('User not found', 404));
 

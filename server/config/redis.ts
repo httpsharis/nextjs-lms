@@ -9,7 +9,14 @@ const redisClient = () => {
     throw new Error('Redis connection failed!')
 }
 
-export const redis = new Redis(redisClient())
+export const redis = new Redis(redisClient(), {
+    retryStrategy(times) {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+    },
+    // Upstash specific settings
+    maxRetriesPerRequest: null,
+});
 
 // Error Handling for Redis
 redis.on('error', (err) => {
