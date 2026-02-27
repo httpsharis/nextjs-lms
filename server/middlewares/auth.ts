@@ -25,13 +25,16 @@ export const isAuthenticated = catchAsyncError(async (req: Request, res: Respons
         return next(new ErrorHandler('User not found', 400))
     }
 
-    (req as any).user = JSON.parse(user) as IUser;
+    const parsedUser = JSON.parse(user) as IUser;
+
+    (req as any).user = parsedUser;
     next()
 })
 
 // @isAuthorizedRoles 
 export const isAuthorized = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
+        console.log("Full User Object from Req:", (req as any).user);
 
         const userRole = (req as any).user?.role;
         if (!userRole || !roles.includes(userRole)) {

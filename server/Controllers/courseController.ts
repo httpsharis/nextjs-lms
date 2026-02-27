@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
 import cloudinary from 'cloudinary';
-import { createCourse } from '@/Services/courseService';
+import { createCourse } from '../Services/courseService';
 import { AuthenticatedRequest } from '@/@types';
 
 // Upload Course

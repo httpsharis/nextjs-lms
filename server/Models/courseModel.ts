@@ -71,7 +71,6 @@ const commentSchema = new Schema<Comment>({
 
 const courseDataSchema = new Schema<CourseData>({
     videoUrl: String,
-    videoThumbnail: Object,
     title: String,
     videoSection: String,
     description: String,
@@ -100,11 +99,9 @@ const courseSchema = new Schema<Course>({
     },
     thumbnail: {
         public_id: {
-            required: true,
             type: String,
         },
         url: {
-            required: true,
             type: String,
         },
     },
@@ -120,8 +117,13 @@ const courseSchema = new Schema<Course>({
         required: true,
         type: String,
     },
-    benefits: [{ type: String }],
-    prerequisites: [{ type: String }],
+    // Changed Array of List to Objects for future changes.
+    benefits: [{
+        title: { type: String, required: true }
+    }],
+    prerequisites: [{
+        title: { type: String, required: true }
+    }],
     reviews: [reviewSchema],
     courseData: [courseDataSchema],
     ratings: {
