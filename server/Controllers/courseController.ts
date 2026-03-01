@@ -110,3 +110,29 @@ export const getAllCourses = catchAsyncError(async (req: Request, res: Response,
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+// get course content - valid users
+export const getCourseByUser = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const userCourseList = req.user?.courses
+        const courseId = req.params.id
+
+        const courseExist = userCourseList?.find((course: any) => course._id.toString() === courseId)
+
+        if (!courseExist) {
+            return next(new ErrorHandler("You are not eligible to access this course", 404))
+        }
+
+        const course = await CourseModel.findById(courseId)
+
+        const content = course?.courseData
+
+        res.status(200).json({
+            success: true,
+            content
+        })
+
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500))
+    }
+})
