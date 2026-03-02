@@ -3,8 +3,8 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 interface Comment extends Document {
     user: object;
-    comment: string;
-    commentReplies?: Comment[]
+    question: string;
+    questionReplies?: Comment[]
 }
 
 interface Review extends Document {
@@ -23,7 +23,10 @@ interface CourseData extends Document {
     title: string;
     description: string;
     videoUrl: string;
-    videoThumbnail: object;
+    videoThumbnail: {
+        public_id: string;
+        url: string;
+    };
     videoSection: string;
     videoLength: number;
     videoPlayer: string;
@@ -37,7 +40,10 @@ interface Course extends Document {
     description: string;
     price: number;
     estimatedPrice?: number;
-    thumbnail: object;
+    thumbnail: {
+        public_id: string;
+        url: string;
+    };
     tags: string;
     level: string;
     demoUrl: string;
@@ -65,8 +71,8 @@ const linkSchema = new Schema<Link>({
 
 const commentSchema = new Schema<Comment>({
     user: Object,
-    comment: String,
-    commentReplies: [Object],
+    question: String,
+    questionReplies: [Object],
 })
 
 const courseDataSchema = new Schema<CourseData>({
