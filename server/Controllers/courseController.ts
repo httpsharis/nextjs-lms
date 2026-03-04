@@ -282,3 +282,67 @@ export const addAnswer = catchAsyncError(async (req: AuthenticatedRequest, res: 
         return next(new ErrorHandler(error.message, 500));
     }
 })
+
+// add review in course 
+interface AddReviewData {
+    review: string;
+    courseId: string;
+    rating: number;
+    userId: string;
+}
+
+export const addReview = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const courseId = req.params.id;
+
+        // 1. Validate Object ID
+        if (!mongoose.Types.ObjectId.isValid(courseId)) {
+            return next(new ErrorHandler("Invalid course ID", 400));
+        }
+
+        // 2. Business Logic: Check if user purchased the course
+        // Note: Check your user model to see how purchased courses are saved
+        const userCourseList = req.user?.courses || [];
+        const courseExists = userCourseList.some((course: any) => course._id.toString() === courseId);
+        
+        if (!courseExists) {
+            return next(new ErrorHandler("You must purchase this course to review it", 403));
+        }
+
+        // 3. Strict Validation
+        const { review, rating } = req.body as AddReviewData;
+        if (!review || !rating) {
+            return next(new ErrorHandler("Both review and rating are required", 400));
+        }
+
+        const course = await CourseModel.findById(courseId);
+        if (!course) {
+            return next(new ErrorHandler("Course not found", 404));
+        }
+
+        // 4. Removed 'any', using clean object
+        const reviewData = {
+            user: req.user,
+            comment: review,
+            rating,
+        };
+
+        course.reviews.push(reviewData as any); 
+
+        // 5. Professional Math using reduce
+        const totalRating = course.reviews.reduce((acc, rev) => acc + rev.rating, 0);
+        course.ratings = totalRating / course.reviews.length;
+
+        await course.save();
+
+        // 6. Sync Redis Cache
+        await redis.set(courseId, JSON.stringify(course));
+
+        res.status(201).json({
+            success: true,
+            course,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});

@@ -9,10 +9,10 @@ interface Comment extends Document {
 }
 
 interface Review extends Document {
-    user: string;
+    user: IUser;
     rating: number;
     comment: string;
-    commentReplies: Comment[];
+    commentReplies?: Comment[];
 }
 
 interface Link extends Document {
