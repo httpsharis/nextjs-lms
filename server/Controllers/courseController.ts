@@ -304,7 +304,7 @@ export const addReview = catchAsyncError(async (req: AuthenticatedRequest, res: 
         // Note: Check your user model to see how purchased courses are saved
         const userCourseList = req.user?.courses || [];
         const courseExists = userCourseList.some((course: any) => course._id.toString() === courseId);
-        
+
         if (!courseExists) {
             return next(new ErrorHandler("You must purchase this course to review it", 403));
         }
@@ -327,7 +327,7 @@ export const addReview = catchAsyncError(async (req: AuthenticatedRequest, res: 
             rating,
         };
 
-        course.reviews.push(reviewData as any); 
+        course.reviews.push(reviewData as any);
 
         // 5. Professional Math using reduce
         const totalRating = course.reviews.reduce((acc, rev) => acc + rev.rating, 0);
@@ -346,3 +346,56 @@ export const addReview = catchAsyncError(async (req: AuthenticatedRequest, res: 
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+interface AddReviewReplyData {
+    comment: string;
+    courseId: string;
+    reviewId: string;
+}
+
+// add reply in review
+export const addReplyToReview = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const { comment, courseId, reviewId } = req.body as AddReviewReplyData;
+
+        // Fetch the course
+        const course = await CourseModel.findById(courseId);
+
+        if (!course) {
+            return next(new ErrorHandler("Course Not Found", 400));
+        }
+
+        // Find the review
+        const review = course?.reviews?.find((rev: any) => rev._id.toString() === reviewId);
+
+        if (!review) {
+            return next(new ErrorHandler("Review not found", 404));
+        }
+
+        // Create reply data
+        const replyData: any = {
+            user: req.user,
+            comment,
+            createdAt: new Date(),
+        };
+
+        // Initialize commentReplies if it doesn't exist
+        if (!review.commentReplies) {
+            review.commentReplies = [];
+        }
+
+        // Add the reply to the review
+        review.commentReplies.push(replyData);
+
+        // Save the updated course
+        await course.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Reply added successfully",
+            course,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+})
