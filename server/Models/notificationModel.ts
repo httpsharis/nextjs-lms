@@ -1,14 +1,13 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
-
-export interface Notification extends Document {
+export interface INotification extends Document {
     title: string;
     message: string;
     status: string;
     userId: string;
 }
 
-const notificationSchema = new Schema<Notification>({
+const notificationSchema = new Schema<INotification>({
     title: {
         type: String,
         required: true
@@ -22,8 +21,12 @@ const notificationSchema = new Schema<Notification>({
         required: true,
         default: "unread"
     },
+    userId: {
+        type: String,
+        required: true,
+    },
 }, { timestamps: true })
 
-const NotificationModel: Model<Notification> = mongoose.model('Notification', notificationSchema);
+const NotificationModel: Model<INotification> = mongoose.model('Notification', notificationSchema);
 
 export default NotificationModel;

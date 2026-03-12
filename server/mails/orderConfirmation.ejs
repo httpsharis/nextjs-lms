@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <style>
+        /* Responsive Mobile Styles */
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; padding: 20px !important; }
+            .reply { padding: 10px !important; }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #2563eb;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .reply {
+            background-color: #f9fafb;
+            border: 1px solid #eeeeee;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .reply .user {
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        /* Added a simple table for the receipt */
+        .receipt-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .receipt-table th, .receipt-table td {
+            padding: 8px 0;
+            text-align: left;
+            color: #555555;
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        .receipt-table th {
+            font-weight: bold;
+            color: #333333;
+            width: 40%;
+        }
+
+        .receipt-table tr:last-child th,
+        .receipt-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .footer {
+            background-color: #f9fafb;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #999999;
+        }
+
+        .cta {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .cta a {
+            background-color: #2563eb;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .cta a:hover {
+            background-color: #174ea6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Order Confirmation</h1>
+        </div>
+
+        <div class="content">
+            <p style="color: #555555; font-size: 16px; line-height: 1.5;">
+                Hello <strong><%= user.name %></strong>,
+            </p>
+
+            <p style="color: #555555; font-size: 16px; line-height: 1.5;">
+                Thank you for your purchase. Your course order is confirmed. Here is your receipt:
+            </p>
+
+            <div class="reply">
+                <p class="user">Receipt Details</p>
+                <table class="receipt-table">
+                    <tr>
+                        <th>Order ID:</th>
+                        <td>#<%= order._id %></td>
+                    </tr>
+                    <tr>
+                        <th>Course Name:</th>
+                        <td><%= order.name %></td>
+                    </tr>
+                    <tr>
+                        <th>Price Paid:</th>
+                        <td>$<%= order.price %></td>
+                    </tr>
+                    <tr>
+                        <th>Date:</th>
+                        <td><%= order.date %></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="cta">
+                <a href="<%= courseLink %>">Start Learning Now</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            &copy; <%= new Date().getFullYear() %> MyLMS Platform. All rights reserved.<br>
+            Need help? <a href="mailto:support@mylms.com" style="color: #2563eb; text-decoration: none;">Contact Support</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -21,8 +21,10 @@ app.use(cors({
 // Routes
 import UserRouter from './routes/userRoute';
 import courseRouter from './routes/courseRoute'
+import OrderRouter from './routes/orderRoute'
 
 app.use('/api/v1', UserRouter)
 app.use('/api/v1', courseRouter)
+app.use('/api/v1', OrderRouter)
 
 app.use(errorMiddleware)
