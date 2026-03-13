@@ -7,9 +7,8 @@ import { AuthenticatedRequest } from '@/@types';
 import CourseModel from '../Models/courseModel';
 import { redis } from '../config/redis';
 import mongoose from 'mongoose';
-import ejs from 'ejs'
-import path from 'node:path';
 import sendMail from '../Utils/sendMail';
+import NotificationModel from '../Models/notificationModel';
 
 /**
  * 1. UPLOAD COURSE - (Authenticated User)
@@ -331,6 +330,12 @@ export const addQuestion = catchAsyncError(async (req: AuthenticatedRequest, res
             return next(new ErrorHandler("Course or Content not found", 404));
         }
 
+        await NotificationModel.create({
+            userId: req.user?._id.toString(),
+            title: "New Question Received",
+            message: `A student asked a new question in ${updatedCourse.name}.`,
+        });
+
         res.status(200).json({
             success: true,
             course: updatedCourse,
@@ -363,8 +368,8 @@ export const addAnswer = catchAsyncError(async (req: AuthenticatedRequest, res: 
         const { answer, courseId, contentId, questionId } = req.body as AddAnswerData;
 
         // Validation
-        if (!mongoose.Types.ObjectId.isValid(courseId) || 
-            !mongoose.Types.ObjectId.isValid(contentId) || 
+        if (!mongoose.Types.ObjectId.isValid(courseId) ||
+            !mongoose.Types.ObjectId.isValid(contentId) ||
             !mongoose.Types.ObjectId.isValid(questionId)) {
             return next(new ErrorHandler("Invalid ID format", 400));
         }
@@ -383,9 +388,19 @@ export const addAnswer = catchAsyncError(async (req: AuthenticatedRequest, res: 
         }
 
         // 2. Email Logic (Controller handles external communications)
+        // 2. Email & Notification Logic
         const { questionUser, questionText } = result;
+        const isOriginalAsker = req.user?._id?.toString() === (questionUser as any)?._id?.toString();
 
-        if (req.user?._id?.toString() !== (questionUser as any)?._id?.toString()) {
+        if (isOriginalAsker) {
+            // The student replied to their own question
+            await NotificationModel.create({
+                userId: req.user?._id.toString(),
+                title: "New Question Reply",
+                message: `A student replied to a question in ${result.course.name}.`,
+            });
+        } else {
+            // An admin (or another user) replied
             try {
                 const data = {
                     user: questionUser,

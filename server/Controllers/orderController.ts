@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, response } from 'express';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
 import OrderModel, { IOrder } from '../Models/orderModel'
@@ -12,8 +12,24 @@ import CourseModel from '../Models/courseModel';
 import { redis } from '@/config/redis';
 import { newOrderService } from '../Services/orderService';
 
-// Create Order 
-
+/**
+ * CREATE ORDER - (Authenticated User)
+ * ------------------------------------
+ * This function handles the creation of a new order for an authenticated user.
+ * 
+ * Steps:
+ * 1. Validate the user's authentication status by checking the `userId` from the session.
+ * 2. Ensure the user has not already purchased the course.
+ * 3. Verify that the course exists in the database.
+ * 4. Create a new order using the `newOrderService`.
+ * 5. Generate a notification for the user about the new order.
+ * 6. Send an order confirmation email to the user.
+ * 7. Return a success response with the order details.
+ * 
+ * Note:
+ * - The `userId` is derived from the authenticated session and not accepted from the frontend.
+ * - The `Omit` utility type is used to exclude `userId` from the request payload type.
+ */
 type IOrderRequest = Omit<IOrder, 'userId'>
 export const createOrder = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -79,6 +95,9 @@ export const createOrder = catchAsyncError(async (req: AuthenticatedRequest, res
         } catch (error: any) {
             return next(new ErrorHandler(error.message, 500));
         }
+
+        course.purchased = (course.purchased || 0) + 1
+        await course.save()
 
         // 10. Send the success response
         res.status(201).json({

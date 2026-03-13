@@ -34,12 +34,10 @@ export const isAuthenticated = catchAsyncError(async (req: Request, res: Respons
 // @isAuthorizedRoles 
 export const isAuthorized = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        console.log("Full User Object from Req:", (req as any).user);
-
         const userRole = (req as any).user?.role;
         if (!userRole || !roles.includes(userRole)) {
             return next(
-                new ErrorHandler(`Role: ${userRole || "unknown"} is not allowed to access this resource`, 403)
+                new ErrorHandler(`Role: ${userRole || "user"} is not allowed to access this resource`, 403)
             )
         }
         next()
