@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
 import cloudinary from 'cloudinary';
-import { addAnswerService, addQuestionService, addReviewReplyService, createCourse } from '../Services/courseService';
+import { addAnswerService, addQuestionService, addReviewReplyService, createCourse, getAllCoursesAdminService } from '../Services/courseService';
 import { AuthenticatedRequest } from '@/@types';
 import CourseModel from '../Models/courseModel';
 import { redis } from '../config/redis';
@@ -553,3 +553,15 @@ export const addReplyToReview = catchAsyncError(async (req: AuthenticatedRequest
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+export const getAllCoursesAdmin = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const courses = await getAllCoursesAdminService()
+        res.status(201).json({
+            success: true,
+            courses
+        })
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500))
+    }
+})

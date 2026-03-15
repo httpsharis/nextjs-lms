@@ -10,7 +10,7 @@ import NotificationModel from '../Models/notificationModel';
 import { AuthenticatedRequest } from '@/@types';
 import CourseModel from '../Models/courseModel';
 import { redis } from '@/config/redis';
-import { newOrderService } from '../Services/orderService';
+import { getAllOrdersAdminService, newOrderService } from '../Services/orderService';
 
 /**
  * CREATE ORDER - (Authenticated User)
@@ -44,7 +44,7 @@ export const createOrder = catchAsyncError(async (req: AuthenticatedRequest, res
         const userCourseList = req.user?.courses || []
 
         const courseExist = userCourseList.find(
-            (course: any) => course.courseId.toString() === courseId
+            (course: any) => course.courseId?.toString() === courseId
         )
 
         if (courseExist) {
@@ -58,13 +58,13 @@ export const createOrder = catchAsyncError(async (req: AuthenticatedRequest, res
         }
 
         const order = await newOrderService(
-            userId.toString(),
-            course._id.toString(),
+            userId?.toString(),
+            course._id?.toString(),
             paymentInfo,
         )
 
         await NotificationModel.create({
-            userId: req.user?._id.toString(),
+            userId: req.user?._id?.toString(),
             title: "New Order",
             message: `You have a new order for the course: ${course.name}`,
         });
@@ -72,7 +72,7 @@ export const createOrder = catchAsyncError(async (req: AuthenticatedRequest, res
         try {
             const mailData = {
                 order: {
-                    _id: course._id.toString().slice(0, 6),
+                    _id: course._id?.toString().slice(0, 6),
                     name: course.name,
                     price: course.price,
                     date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -104,6 +104,18 @@ export const createOrder = catchAsyncError(async (req: AuthenticatedRequest, res
             success: true,
             order,
         });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500))
+    }
+})
+
+export const getAllOrdersAdmin = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const orders = await getAllOrdersAdminService()
+        res.status(201).json({
+            success: true,
+            orders
+        })
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500))
     }

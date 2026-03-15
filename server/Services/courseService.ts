@@ -58,8 +58,8 @@ export const addReviewReplyService = async (courseId: string, reviewId: string, 
  * 6. Returns the updated course object.
  */
 export const addQuestionService = async (
-    courseId: string, 
-    contentId: string, 
+    courseId: string,
+    contentId: string,
     questionData: any
 ) => {
     const course = await CourseModel.findById(courseId);
@@ -92,9 +92,9 @@ export const addQuestionService = async (
  * 6. Returns the updated course and the original question user (for emails).
  */
 export const addAnswerService = async (
-    courseId: string, 
-    contentId: string, 
-    questionId: string, 
+    courseId: string,
+    contentId: string,
+    questionId: string,
     answerData: any
 ) => {
     const course = await CourseModel.findById(courseId);
@@ -115,3 +115,8 @@ export const addAnswerService = async (
     // Return the course and the user who asked the question
     return { course, questionUser: question.user, questionText: question.question };
 };
+
+export const getAllCoursesAdminService = async () => {
+    const coursesAdmin = await CourseModel.find().sort({ createdAt: -1 })
+    return coursesAdmin
+}

@@ -3,8 +3,12 @@ import userModel from "../Models/userModel";
 import { Response } from "express";
 import { redis } from "../config/redis";
 
-
-// @get-User-Info
+/**
+ * GET USER INFO
+ * -------------
+ * 
+ * Getting user info from the redis for better speed and giving low load on the DB
+ */
 export const getUserById = async (id: string, res: Response) => {
     const userJson = await redis.get(id)
     if (userJson) {
@@ -42,3 +46,20 @@ export const createNewUser = async (data: any) => {
     const user = await userModel.create(data);
     return user;
 };
+
+/**
+ * GET ALL USER SERVICE 
+ * -------------------------
+ * 
+ * Finding the user and sorting it
+ */
+
+export const getAllUserService = async () => {
+    const users = await userModel.find().sort({ createdAt: -1 })
+    return users
+}
+
+export const updateUserRoleService = async (id: string, role: string) => {
+    const updatedRole = await userModel.findByIdAndUpdate(id, { role }, { new: true, runValidators: true })
+    return updatedRole
+}

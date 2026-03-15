@@ -7,7 +7,7 @@ import sendMail from '../Utils/sendMail';
 import rateLimit from 'express-rate-limit'
 import { accessTokenOptions, refreshTokenOptions, sendToken } from '../Utils/jwt';
 import { redis } from '../config/redis';
-import { createNewUser, getUserById } from '../Services/userService';
+import { createNewUser, getAllUserService, getUserById, updateUserRoleService } from '../Services/userService';
 import { checkUserExist } from '../Services/userService';
 import { createActivationToken } from '../Utils/activationToken';
 import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo, UpdatePassword, UpdateProfilePicture } from '@/@types';
@@ -365,8 +365,13 @@ export const updateUserPassword = catchAsyncError(async (req: AuthenticatedReque
 
 /**
  * UPDATE PROFILE PICTURE
- * ----------------
- * 1. 
+ * ----------------------
+ * 
+ * 1. Reqeusting the avatar from frontend
+ * 2. finding the User and Validating 
+ * 3. Uploading the new image to Cloudinary
+ * 4. Deleting the old Avatar
+ * 5. Saving the user in DB and redis
  */
 
 export const updateProfilePicture = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -394,8 +399,52 @@ export const updateProfilePicture = catchAsyncError(async (req: AuthenticatedReq
 		await user.save();
 		await redis.set(user._id.toString(), JSON.stringify(user));
 
-		res.status(200).json({ success: true, message: 'Profile picture updated', avatar: user.avatar });
+		res.status(200).json({
+			success: true,
+			message: 'Profile picture updated', avatar: user.avatar
+		});
 	} catch (error: any) {
 		return next(new ErrorHandler(error.message, 404));
+	}
+})
+
+/**
+ * GET ALL USERS - ADMIN DASHBOARD
+ * ----------------
+ * 
+ * Defined the users and called @getAllUserService function and sent the response.
+ */
+
+export const getAllUsers = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+	try {
+		const users = await getAllUserService()
+
+		res.status(200).json({
+			success: true,
+			users
+		})
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 500))
+	}
+})
+
+export const updateUserRole = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+	try {
+		const { id, role } = req.body
+		if (!id || !role) {
+			return next(new ErrorHandler("Please provide an ID and a Role", 400))
+		}
+
+		const updatedRole = await updateUserRoleService(id, role)
+		if (!updatedRole) {
+			return next(new ErrorHandler("User not Found!", 404))
+		}
+
+		res.status(200).json({
+			success: true,
+			updatedRole
+		})
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 500))
 	}
 })

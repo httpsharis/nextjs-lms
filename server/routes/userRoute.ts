@@ -10,9 +10,11 @@ import {
     updateUserInfo,
     registerLimiter,
     updateUserPassword,
-    updateProfilePicture
+    updateProfilePicture,
+    getAllUsers,
+    updateUserRole
 } from '../Controllers/userController';
-import { isAuthenticated } from '../middlewares/auth';
+import { isAuthenticated, isAuthorized } from '../middlewares/auth';
 
 /**
  * USER ROUTES CONFIGURATION
@@ -38,5 +40,9 @@ UserRouter.get('/logout', isAuthenticated, logoutUser);
 UserRouter.put('/update-user-info', isAuthenticated, updateUserInfo);
 UserRouter.put('/update-password', isAuthenticated, updateUserPassword)
 UserRouter.put('/update-user-avatar', isAuthenticated, updateProfilePicture)
+
+// --- Admin Routes ---
+UserRouter.get('/get-all-users', isAuthenticated, isAuthorized('admin'), getAllUsers);
+UserRouter.put('/update-user-role', isAuthenticated, isAuthorized('admin'), updateUserRole)
 
 export default UserRouter;
