@@ -12,7 +12,8 @@ import {
     updateUserPassword,
     updateProfilePicture,
     getAllUsers,
-    updateUserRole
+    updateUserRole,
+    deleteUser
 } from '../Controllers/userController';
 import { isAuthenticated, isAuthorized } from '../middlewares/auth';
 
@@ -44,5 +45,6 @@ UserRouter.put('/update-user-avatar', isAuthenticated, updateProfilePicture)
 // --- Admin Routes ---
 UserRouter.get('/get-all-users', isAuthenticated, isAuthorized('admin'), getAllUsers);
 UserRouter.put('/update-user-role', isAuthenticated, isAuthorized('admin'), updateUserRole)
+UserRouter.delete('/delete-user/:id', isAuthenticated, isAuthorized('admin'), deleteUser)
 
 export default UserRouter;

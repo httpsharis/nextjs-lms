@@ -63,3 +63,8 @@ export const updateUserRoleService = async (id: string, role: string) => {
     const updatedRole = await userModel.findByIdAndUpdate(id, { role }, { new: true, runValidators: true })
     return updatedRole
 }
+
+export const deleteUserService = async (id: string) => {
+    const user = await userModel.findByIdAndDelete(id)
+    return user
+}

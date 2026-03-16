@@ -7,7 +7,7 @@ import sendMail from '../Utils/sendMail';
 import rateLimit from 'express-rate-limit'
 import { accessTokenOptions, refreshTokenOptions, sendToken } from '../Utils/jwt';
 import { redis } from '../config/redis';
-import { createNewUser, getAllUserService, getUserById, updateUserRoleService } from '../Services/userService';
+import { createNewUser, deleteUserService, getAllUserService, getUserById, updateUserRoleService } from '../Services/userService';
 import { checkUserExist } from '../Services/userService';
 import { createActivationToken } from '../Utils/activationToken';
 import { AuthenticatedRequest, RegisterBody, ActivationRequest, LoginUser, UpdateUserInfo, UpdatePassword, UpdateProfilePicture } from '@/@types';
@@ -448,3 +448,22 @@ export const updateUserRole = catchAsyncError(async (req: AuthenticatedRequest, 
 		return next(new ErrorHandler(error.message, 500))
 	}
 })
+
+// Delete User  - admin
+export const deleteUser = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+	try {
+		const { id } = req.params
+
+		const user = await deleteUserService(id)
+		if (!user) {
+			return next(new ErrorHandler("User not Found", 404))
+		}
+
+		res.status(200).json({
+			success: true,
+			message: "User successfully deleted"
+		})
+	} catch (error: any) {
+		return next(new ErrorHandler(error.message, 500))
+	}
+}) 
