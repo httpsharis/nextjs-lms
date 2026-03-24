@@ -449,7 +449,12 @@ export const updateUserRole = catchAsyncError(async (req: AuthenticatedRequest, 
 	}
 })
 
-// Delete User  - admin
+/**
+ * Delete USER - ADMIN DASHBOARD
+ * ----------------
+ * 
+ * Defined the users and called @getAllUserService function and sent the response.
+ */
 export const deleteUser = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 	try {
 		const { id } = req.params
