@@ -2,13 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import ErrorHandler from '../Utils/ErrorHandler';
 import { catchAsyncError } from '../middlewares/catchAsyncErrors';
 import cloudinary from 'cloudinary';
-import { addAnswerService, addQuestionService, addReviewReplyService, createCourse, getAllCoursesAdminService } from '../Services/courseService';
+import { addAnswerService, addQuestionService, addReviewReplyService, createCourse, deleteCourseService, getAllCoursesAdminService } from '../Services/courseService';
 import { AuthenticatedRequest } from '@/@types';
 import CourseModel from '../Models/courseModel';
 import { redis } from '../config/redis';
 import mongoose from 'mongoose';
 import sendMail from '../Utils/sendMail';
 import NotificationModel from '../Models/notificationModel';
+import { success } from 'zod';
 
 /**
  * 1. UPLOAD COURSE - (Authenticated User)
@@ -560,6 +561,25 @@ export const getAllCoursesAdmin = catchAsyncError(async (req: AuthenticatedReque
         res.status(201).json({
             success: true,
             courses
+        })
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500))
+    }
+})
+
+export const deleteCourse = catchAsyncError(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params
+
+        const course = await deleteCourseService(id)
+
+        if (!course) {
+            return next(new ErrorHandler("Course not found", 404))
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Course successfully deleted!"
         })
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500))

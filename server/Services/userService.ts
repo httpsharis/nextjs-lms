@@ -66,5 +66,10 @@ export const updateUserRoleService = async (id: string, role: string) => {
 
 export const deleteUserService = async (id: string) => {
     const user = await userModel.findByIdAndDelete(id)
+
+    if (user) {
+        await redis.del(id)
+    }
+
     return user
 }

@@ -120,3 +120,13 @@ export const getAllCoursesAdminService = async () => {
     const coursesAdmin = await CourseModel.find().sort({ createdAt: -1 })
     return coursesAdmin
 }
+
+export const deleteCourseService = async (id: string) => {
+    const deleteCourseAdmin = await CourseModel.findByIdAndDelete(id)
+
+    if (deleteCourseAdmin) {
+        await redis.del(id)
+    }
+
+    return deleteCourseAdmin
+}
