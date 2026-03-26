@@ -9,7 +9,6 @@ import { redis } from '../config/redis';
 import mongoose from 'mongoose';
 import sendMail from '../Utils/sendMail';
 import NotificationModel from '../Models/notificationModel';
-import { success } from 'zod';
 
 /**
  * 1. UPLOAD COURSE - (Authenticated User)

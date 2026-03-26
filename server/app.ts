@@ -23,10 +23,13 @@ import UserRouter from './routes/userRoute';
 import courseRouter from './routes/courseRoute'
 import OrderRouter from './routes/orderRoute'
 import notificationRouter from './routes/notificationRoute';
+import analyticsRouter from './routes/analyticsRoute';
 
 app.use('/api/v1', UserRouter)
 app.use('/api/v1', courseRouter)
 app.use('/api/v1', OrderRouter)
 app.use('/api/v1', notificationRouter)
+app.use('/api/v1', analyticsRouter)
+
 
 app.use(errorMiddleware)
