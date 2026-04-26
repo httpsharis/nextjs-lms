@@ -16,6 +16,8 @@ export const redis = new Redis(redisClient(), {
     },
     // Upstash specific settings
     maxRetriesPerRequest: null,
+    family: 4,
+    tls: { rejectUnauthorized: false }
 });
 
 // Error Handling for Redis

@@ -4,12 +4,12 @@ import { catchAsyncError } from '../middlewares/catchAsyncErrors';
 import { AuthenticatedRequest } from '../@types/index';
 import LayoutModel from '../Models/layoutModel';
 import cloudinary from 'cloudinary';
-import { createLayoutService } from '../Services/layoutService';
+import { createLayoutService, updateLayoutService } from '../Services/layoutService';
 
 export const createLayout = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { type } = req.body;
-        
+
         // 1. Check if this exact layout already exists
         const isTypeExist = await LayoutModel.findOne({ type });
         if (isTypeExist) {
@@ -22,7 +22,7 @@ export const createLayout = catchAsyncError(async (req: Request, res: Response, 
             const myCloud = await cloudinary.v2.uploader.upload(image, {
                 folder: "layout",
             });
-            
+
             const banner = {
                 type: "Banner",
                 banner: {
@@ -67,6 +67,92 @@ export const createLayout = catchAsyncError(async (req: Request, res: Response, 
         res.status(200).json({
             success: true,
             message: "Layout created successfully",
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+// Edit Layout
+export const editlayout = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { type } = req.body;
+
+        // 1. Handle the Banner Image Update
+        if (type === "Banner") {
+            const bannerData: any = await LayoutModel.findOne({ type: "Banner" });
+            if (!bannerData) {
+                return next(new ErrorHandler("Banner layout not found", 404));
+            }
+
+            const { image, title, subTitle } = req.body;
+
+            // Only destroy if there is an existing public_id
+            if (bannerData.banner?.image?.public_id) {
+                await cloudinary.v2.uploader.destroy(bannerData.banner.image.public_id);
+            }
+
+            const myCloud = await cloudinary.v2.uploader.upload(image, {
+                folder: "layout",
+            });
+
+            // This is the NEW data we want to save
+            const banner = {
+                type: "Banner",
+                banner: {
+                    image: {
+                        public_id: myCloud.public_id,
+                        url: myCloud.secure_url,
+                    },
+                    title,
+                    subTitle,
+                },
+            };
+            
+            // Pass the ID and the new banner data
+            await updateLayoutService(bannerData._id, banner);
+        }
+
+        // 2. Handle the FAQ Question List Update
+        if (type === "FAQ") {
+            const faqData = await LayoutModel.findOne({ type: "FAQ" });
+            if (!faqData) return next(new ErrorHandler("FAQ layout not found", 404));
+
+            const { faq } = req.body;
+            const faqItems = await Promise.all(
+                faq.map(async (item: any) => {
+                    return {
+                        question: item.question,
+                        answer: item.answer
+                    };
+                })
+            );
+            
+            // Pass the ID and the newly mapped FAQs
+            await updateLayoutService(faqData._id, { type: "FAQ", faq: faqItems });
+        }
+
+        // 3. Handle the Category List Update
+        if (type === "Category") {
+            const categoryData = await LayoutModel.findOne({ type: "Category" });
+            if (!categoryData) return next(new ErrorHandler("Category layout not found", 404));
+
+            const { category } = req.body;
+            const categoryItems = await Promise.all(
+                category.map(async (item: any) => {
+                    return {
+                        title: item.title
+                    };
+                })
+            );
+            
+            // Fix: Changed from createLayoutService to updateLayoutService and passed ID
+            await updateLayoutService(categoryData._id, { type: "Category", category: categoryItems });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Layout updated successfully", // Changed to 'updated'
         });
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
