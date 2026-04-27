@@ -74,9 +74,14 @@ export const createLayout = catchAsyncError(async (req: Request, res: Response, 
 });
 
 // Edit Layout
-export const editlayout = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+export const editLayout = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { type } = req.body;
+
+        const allowedTypes = ['Banner', 'FAQ', 'Category'];
+        if (!allowedTypes.includes(type)) {
+            return next(new ErrorHandler('Not a valid Type, it should be Banner, FAQ, Category', 400))
+        }
 
         // 1. Handle the Banner Image Update
         if (type === "Banner") {
@@ -87,28 +92,32 @@ export const editlayout = catchAsyncError(async (req: Request, res: Response, ne
 
             const { image, title, subTitle } = req.body;
 
-            // Only destroy if there is an existing public_id
-            if (bannerData.banner?.image?.public_id) {
-                await cloudinary.v2.uploader.destroy(bannerData.banner.image.public_id);
-            }
+            let imageInfo = bannerData.banner.image;
 
-            const myCloud = await cloudinary.v2.uploader.upload(image, {
-                folder: "layout",
-            });
+            // Only destroy if there is an existing public_id
+            if (image && !image.startsWith("https")) {
+                if (bannerData.banner.image.public_id) {
+                    await cloudinary.v2.uploader.destroy(bannerData.banner.image.public_id);
+                }
+                const myCloud = await cloudinary.v2.uploader.upload(image, {
+                    folder: "layout",
+                });
+                imageInfo = {
+                    public_id: myCloud.public_id,
+                    url: myCloud.secure_url
+                }
+            }
 
             // This is the NEW data we want to save
             const banner = {
                 type: "Banner",
                 banner: {
-                    image: {
-                        public_id: myCloud.public_id,
-                        url: myCloud.secure_url,
-                    },
+                    image: imageInfo,
                     title,
                     subTitle,
                 },
             };
-            
+
             // Pass the ID and the new banner data
             await updateLayoutService(bannerData._id, banner);
         }
@@ -127,7 +136,7 @@ export const editlayout = catchAsyncError(async (req: Request, res: Response, ne
                     };
                 })
             );
-            
+
             // Pass the ID and the newly mapped FAQs
             await updateLayoutService(faqData._id, { type: "FAQ", faq: faqItems });
         }
@@ -145,8 +154,7 @@ export const editlayout = catchAsyncError(async (req: Request, res: Response, ne
                     };
                 })
             );
-            
-            // Fix: Changed from createLayoutService to updateLayoutService and passed ID
+
             await updateLayoutService(categoryData._id, { type: "Category", category: categoryItems });
         }
 
@@ -158,3 +166,22 @@ export const editlayout = catchAsyncError(async (req: Request, res: Response, ne
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+export const getLayoutByType = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { type } = req.params;
+
+        const Layout = await LayoutModel.findOne({ type })
+
+        if (!Layout) {
+            return next(new ErrorHandler(`${type} layout not found`, 404))
+        }
+
+        res.status(200).json({
+            success: true,
+            Layout
+        })
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+})
