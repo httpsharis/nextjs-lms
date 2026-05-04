@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Poppins, Josefin_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./utils/themeProvider";
@@ -24,7 +23,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${josefin.variable} h-full antialiased bg-white! dark:bg-linear-to-b dark:from-gray-900 dark:to-black duration-300 `}
+      className={`${poppins.variable} ${josefin.variable} h-full antialiased bg-white! bg-no-repeat dark:bg-linear-to-b dark:from-gray-900 dark:to-black duration-300 `}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
