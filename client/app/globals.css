@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
-/* 1. Dark Mode: "class" configuration */
+/* 1. Tell Tailwind to listen to our next-themes class */
 @custom-variant dark (&:is(.dark *));
+@source "../";
 
 @theme {
   /* 2. Custom Fonts */
@@ -16,33 +17,32 @@
   --breakpoint-1200px: 1200px;
   --breakpoint-1300px: 1300px;
   --breakpoint-1500px: 1500px;
-  
-  /* (Optional) Background images if you still need them */
+
   --background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
   --background-image-gradient-conic: conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops));
 }
 
+/* Light Mode Variables */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* Dark Mode Variables (Controlled by your button!) */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Apply the variables globally */
 body {
-  color: rgb(var(--foreground-rgb));
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 .hero_animation {
@@ -51,21 +51,28 @@ body {
 }
 
 @keyframes changeBackgroundColor {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   16.67% {
     opacity: 0.9;
   }
+
   33.33% {
     opacity: 0.8;
   }
+
   50% {
     opacity: 0.6;
   }
+
   66.67% {
     opacity: 0.5;
   }
+
   83.33% {
     opacity: 0.4;
   }

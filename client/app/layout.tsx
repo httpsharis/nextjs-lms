@@ -23,9 +23,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${josefin.variable} h-full antialiased bg-white! bg-no-repeat dark:bg-linear-to-b dark:from-gray-900 dark:to-black duration-300 `}
+      suppressHydrationWarning
+      className={`${poppins.variable} ${josefin.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-white bg-no-repeat dark:bg-linear-to-b dark:from-gray-900 dark:to-black duration-300 text-black dark:text-white">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
