@@ -16,7 +16,7 @@ export const ThemeSwitcher = () => {
   }
 
   return (
-    <div className="flex items-center justify-center mx-4">
+    <div className="flex items-center justify-center mx-2">
       {theme === "light" ? (
         <Moon
           className="cursor-pointer"

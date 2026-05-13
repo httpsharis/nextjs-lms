@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Heading from "./utils/Heading";
-import Header from "./components/Header";
+import Header from "./components/layout/Header";
 
 export default function Page() {
   const [open, setOpen] = useState(false);
@@ -19,7 +19,7 @@ export default function Page() {
         open={open}
         setOpen={setOpen}
         activeItems={activeItem}
-        setActiveItem={setActiveItem}
+        setActiveItems={setActiveItem}
       />
     </div>
   );
