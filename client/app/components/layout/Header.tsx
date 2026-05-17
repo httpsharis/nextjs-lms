@@ -17,8 +17,8 @@ const Header: FC<HeaderProps> = ({
   const active = useScroll(80);
   const [openSidebar, setOpenSidebar] = useState(false);
 
-  const handleClose = (e: any) => {
-    if (e.target.id === "screen") setOpenSidebar(false);
+  const handleClose = (e: React.MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).id === "screen") setOpenSidebar(false);
   };
 
   return (
@@ -26,18 +26,18 @@ const Header: FC<HeaderProps> = ({
       <div
         className={`${
           active
-            ? "dark:bg-opacity-50 dark:bg-linear-to-b dark:from-gray-900 dark:to-black fixed top-0 left-0 w-full h-20 z-80 border-b border-gray-200 dark:border-[#ffffff1c]"
-            : "w-full border-b border-gray-200 dark:border-[#ffffff1c] h-20 z-80 dark:shadow"
+            ? "dark:bg-opacity-50 dark:bg-linear-to-b dark:from-gray-900 dark:to-black fixed top-0 left-0 w-full h-15 z-80 border-b border-gray-200 dark:border-[#ffffff1c]"
+            : "w-full border-b border-gray-200 dark:border-[#ffffff1c] h-15 z-80 dark:shadow"
         } transition-all duration-300 backdrop-blur-md`}
       >
-        <div className="w-[95%] 800px:w-[92%] m-auto py-2 h-full">
+        <div className="w-[95%] 800px:w-[92%] m-auto py-1 h-full">
           <div className="w-full h-full flex items-center justify-between p-3">
             {/* Desktop Logo */}
             <Link
               href={"/"}
               className="text-[25px] font-Poppins font-bold tracking-wider text-black dark:text-white"
             >
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-teal-400">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-900 to-teal-600">
                 Dev
               </span>
               Learn.
@@ -49,7 +49,7 @@ const Header: FC<HeaderProps> = ({
 
               {/* Desktop Login Button */}
               <button
-                className="hidden 800px:block px-6 py-2 text-[16px] font-Poppins font-semibold text-white bg-linear-to-r from-blue-500 to-teal-400 rounded-full hover:opacity-90 transition-opacity duration-300"
+                className="hidden 800px:block px-6 py-2 text-[16px] font-Poppins font-semibold text-white bg-linear-to-r from-blue-900 to-teal-900 rounded-full hover:opacity-90 transition-opacity duration-300"
                 onClick={() => setOpen(true)}
               >
                 Log In
