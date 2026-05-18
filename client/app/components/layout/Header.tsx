@@ -4,8 +4,12 @@ import { FC, useState } from "react";
 import { NavItems } from "./NavItems";
 import { ThemeSwitcher } from "../../utils/ThemeSwitcher";
 import { Menu, CircleUserRound } from "lucide-react";
-
+import CustomModel from "../../utils/CustomModel";
 import { useScroll } from "../../hooks/useScroll";
+import Login from "../auth/Login";
+import SignUp from "../auth/SignUp";
+import AuthVerification from "../auth/AuthVerification";
+
 import { HeaderProps } from "../../types";
 
 const Header: FC<HeaderProps> = ({
@@ -13,6 +17,8 @@ const Header: FC<HeaderProps> = ({
   open,
   setOpen,
   setActiveItems,
+  setRoute,
+  route,
 }) => {
   const active = useScroll(80);
   const [openSidebar, setOpenSidebar] = useState(false);
@@ -115,6 +121,60 @@ const Header: FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {route === "Sign-Up" && (
+        <>
+          {open && (
+            <CustomModel
+              open={open}
+              setOpen={setOpen}
+              setRoute={setRoute}
+              activeItem={activeItems}
+              component={() => (
+                <div className="text-center p-4">
+                  <SignUp setRoute={setRoute} />
+                </div>
+              )}
+            />
+          )}
+        </>
+      )}
+      {route === "Login" && (
+        <>
+          {open && (
+            <CustomModel
+              open={open}
+              setOpen={setOpen}
+              setRoute={setRoute}
+              activeItem={activeItems}
+              component={() => (
+                <div className="text-center p-4">
+                  <Login setRoute={setRoute} />
+                </div>
+              )}
+            />
+          )}
+        </>
+      )}
+
+      {/* NEW Verification Route Block */}
+      {route === "AuthVerification" && (
+        <>
+          {open && (
+            <CustomModel
+              open={open}
+              setOpen={setOpen}
+              setRoute={setRoute}
+              activeItem={activeItems}
+              component={() => (
+                <div className="text-center p-4">
+                  <AuthVerification setRoute={setRoute} />
+                </div>
+              )}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 };

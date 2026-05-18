@@ -7,6 +7,7 @@ import Header from "./components/layout/Header";
 export default function Page() {
   const [open, setOpen] = useState(false);
   const [activeItem, setActiveItem] = useState(0);
+  const [route, setRoute] = useState("Login")
 
   return (
     <div>
@@ -20,6 +21,9 @@ export default function Page() {
         setOpen={setOpen}
         activeItems={activeItem}
         setActiveItems={setActiveItem}
+        setRoute={setRoute}
+        route={route}
+        
       />
     </div>
   );
